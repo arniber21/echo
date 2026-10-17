@@ -1,0 +1,23 @@
+e2e/tests/usability.spec.ts
+  s_4d6956e576b617::t_eae02f6f1e6ebe 1-22
+frontend/app/components/EvidencePlayer.vue
+  s_4d6956e576b617::t_25444a2a18337c 4,7,21,27
+frontend/app/utils/viewport.ts
+  s_4d6956e576b617::t_df08f82c131e04 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fa641ff504d4db76d61c860238ab15b82ff4a6ca",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
