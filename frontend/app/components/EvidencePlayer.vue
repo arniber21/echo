@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { MediaFile, SourceRef } from '../types/generated'
 import { formatTime } from '../utils/timeline'
+import { revealIfOffscreen } from '../utils/viewport'
 const props = defineProps<{ media: MediaFile | undefined; reference: SourceRef | null }>()
 const player = ref<HTMLMediaElement | null>(null)
+const viewer = ref<HTMLElement | null>(null)
 const pendingTime = ref<number | null>(null)
 function seek() {
   const element = player.value
@@ -16,12 +18,13 @@ watch(
     pendingTime.value = reference?.source_start ?? null
     await nextTick()
     seek()
+    if (reference && viewer.value) revealIfOffscreen(viewer.value)
   },
   { immediate: true },
 )
 </script>
 <template>
-  <section class="player-panel" aria-label="Evidence viewer">
+  <section ref="viewer" class="player-panel" aria-label="Evidence viewer">
     <div class="player-toolbar">
       <span><span class="status-dot" /> EVIDENCE VIEWER</span
       ><span>{{ media?.source_type.toUpperCase() ?? 'NO SOURCE' }}</span>
