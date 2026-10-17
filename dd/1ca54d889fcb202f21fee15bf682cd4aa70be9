@@ -1,0 +1,25 @@
+backend/rewind/models.py
+  s_4d6956e576b617::t_c867beaaa4e3cb 74-81,89-117,161,204,226-227,253-255,269-274,316
+backend/scripts/generate_types.py
+  s_4d6956e576b617::t_65555980eedaf7 6,36
+frontend/app/types/generated.ts
+  s_4d6956e576b617::t_0978e2c539ef66 19,30-41,52,96,127,173-174,193-206
+shared/schema.json
+  s_4d6956e576b617::t_5e89bebe98fbd9 102-108,168-236,287-293,297,559-565,760-766,1027-1040,1172-1240
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dd1ca54d889fcb202f21fee15bf682cd4aa70be9",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
