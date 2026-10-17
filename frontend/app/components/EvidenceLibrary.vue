@@ -75,7 +75,9 @@ function drop(event: DragEvent) {
     </div>
     <div class="library-footnote">
       <UIcon name="i-lucide-shield-check" /><span
-        >Original files stay local.<br />Live analysis sends media and details to Gemini.</span
+        >Original files are stored locally.<br />Live analysis sends media and source details to
+        Gemini. Optional TypeSafe checks receive sampled images and extracted text. Simulated
+        analysis makes no external requests.</span
       >
     </div>
   </section>

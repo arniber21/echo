@@ -181,8 +181,9 @@ defineExpose({ openWithFiles })
         </div>
         <p class="upload-privacy">
           <UIcon name="i-lucide-shield-check" /><span
-            >Original files stay local. Live analysis sends selected media and source details to
-            Gemini. Use synthetic or consented media.</span
+            >Original files are stored locally. Live analysis sends media and source details to
+            Gemini. Optional TypeSafe checks receive sampled images and extracted text. Simulated
+            analysis makes no external requests.</span
           >
         </p>
         <UButton

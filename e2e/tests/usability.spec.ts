@@ -46,3 +46,17 @@ test('a workspace load failure is distinct from an empty workspace', async ({ pa
   await expect(page.getByRole('heading', { name: 'Unable to load workspace', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'No cases yet', exact: true })).toHaveCount(0)
 })
+
+test('provider explanations identify Gemini and optional TypeSafe before analysis', async ({ page }) => {
+  await page.goto('/?case=demo')
+  const library = page.locator('.library-footnote')
+  await expect(library).toContainText('Original files are stored locally.')
+  await expect(library).toContainText('Gemini')
+  await expect(library).toContainText('Optional TypeSafe checks receive sampled images and extracted text.')
+  await expect(library).toContainText('Simulated analysis makes no external requests.')
+  await page.getByRole('button', { name: 'New case', exact: true }).click()
+  const notice = page.getByRole('dialog').locator('.upload-privacy')
+  await expect(notice).toContainText('Gemini')
+  await expect(notice).toContainText('Optional TypeSafe checks receive sampled images and extracted text.')
+  await expect(notice).toContainText('Simulated analysis makes no external requests.')
+})
