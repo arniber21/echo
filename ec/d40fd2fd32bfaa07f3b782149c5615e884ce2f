@@ -1,0 +1,21 @@
+demo/real-footage/local-incident.md
+  s_4d6956e576b617::t_fe94269b7d2b1d 1-63
+scripts/prepare_local_incident.py
+  s_4d6956e576b617::t_bd64a66e6c4a3a 1-278
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ecd40fd2fd32bfaa07f3b782149c5615e884ce2f",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
