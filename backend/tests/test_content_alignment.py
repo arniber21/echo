@@ -194,3 +194,38 @@ def test_one_loud_audio_spike_cannot_dominate_three_segment_check():
     child = [1000 + generator.random() * 100 for _ in range(250)]
     parent[120] = child[120] = 100000
     assert _match_audio(parent, child) is None
+
+
+def test_exact_duplicate_uses_actual_bytes_not_declared_hash(
+    tmp_path, monkeypatch, parent
+):
+    original = tmp_path / "original"
+    original.write_bytes(b"same actual recording")
+    duplicate = tmp_path / "duplicate"
+    duplicate.write_bytes(original.read_bytes())
+    unrelated = tmp_path / "unrelated"
+    unrelated.write_bytes(b"different recording with forged declared hash")
+
+    async def decode(path, duration):
+        return (
+            parent
+            if path != unrelated
+            else [frame(index + 1000) for index in range(100)]
+        )
+
+    monkeypatch.setattr("rewind.analysis.content_alignment._decode", decode)
+    result = asyncio.run(
+        find_content_alignments(
+            [
+                source("parent", 25, "a"),
+                source("copy", 25, "different"),
+                source("unrelated", 25, "a"),
+            ],
+            {"parent": original, "copy": duplicate, "unrelated": unrelated},
+            JsonCache(tmp_path / "cache"),
+        )
+    )
+    assert result["copy"].offset_seconds == 0
+    assert result["copy"].uncertainty_seconds == 0
+    assert "Byte-identical" in result["copy"].basis
+    assert "unrelated" not in result

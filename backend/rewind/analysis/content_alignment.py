@@ -372,6 +372,7 @@ async def find_content_alignments(
     if anchor.duration_seconds > MAX_FRAMES / FPS:
         return result
     try:
+        anchor_digest = await asyncio.to_thread(_digest, paths[anchor.source_id])
         parent = await _frames(anchor, paths[anchor.source_id], cache)
     except (KeyError, OSError, ValueError, TimeoutError):
         return result
@@ -401,6 +402,16 @@ async def find_content_alignments(
             ):
                 return source.source_id, None
             async with limit:
+                if source.source_type == SourceType.VIDEO and (
+                    await asyncio.to_thread(_digest, paths[source.source_id])
+                    == anchor_digest
+                ):
+                    return source.source_id, ContentAlignment(
+                        0,
+                        0,
+                        1,
+                        "Byte-identical copy of the primary recording; identical source clock, not independent corroboration.",
+                    )
                 if source.source_type == SourceType.AUDIO:
                     if parent_audio is None:
                         return source.source_id, None
