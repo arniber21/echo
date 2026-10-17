@@ -4,6 +4,7 @@ import {
   caseExtent,
   eventSourceReference,
   formatTime,
+  packEventRanges,
   placementLabel,
   primaryVideo,
   rangeStyle,
@@ -83,4 +84,14 @@ test('primary video is deterministic across upload order', () => {
   expect(primaryVideo([second, first])?.source_id).toBe('video-a')
   expect(primaryVideo([first, second])?.source_id).toBe('video-a')
   expect(primaryVideo([])).toBeUndefined()
+})
+
+test('overlapping uncertainty ranges stay separately clickable', () => {
+  const overlaps = packEventRanges([event, { ...event, event_id: 'other' }], 20)
+  expect(overlaps.map((item) => item.row)).toEqual([0, 1])
+  const separated = packEventRanges(
+    [event, { ...event, event_id: 'later', case_min: 15, case_best: 16, case_max: 18 }],
+    20,
+  )
+  expect(separated.map((item) => item.row)).toEqual([0, 0])
 })

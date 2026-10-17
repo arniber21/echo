@@ -56,3 +56,18 @@ export function primaryVideo(media: MediaFile[]): MediaFile | undefined {
       a.sha256 < b.sha256 ? -1 : a.sha256 > b.sha256 ? 1 : a.source_id.localeCompare(b.source_id),
     )[0]
 }
+
+/** Pack overlapping uncertainty ranges into separate rows so every event stays clickable. */
+export function packEventRanges(events: Event[], extent: number): { event: Event; row: number }[] {
+  const rowEnds: number[] = []
+  return [...events]
+    .sort((a, b) => (a.case_min ?? 0) - (b.case_min ?? 0))
+    .map((event) => {
+      const start = Math.max(0, event.case_min ?? 0)
+      const end = Math.max(start + extent * 0.025, event.case_max ?? extent)
+      let row = rowEnds.findIndex((previousEnd) => previousEnd + extent * 0.01 < start)
+      if (row === -1) row = rowEnds.length
+      rowEnds[row] = end
+      return { event, row }
+    })
+}

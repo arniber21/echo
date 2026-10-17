@@ -137,6 +137,13 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : '
         </div>
         <UProgress :model-value="job?.progress ?? null" />
       </div>
+      <UnifiedTimeline
+        v-if="currentCase?.analysis?.events.length"
+        :events="currentCase.analysis.events"
+        :media="media"
+        :selected-id="selectedEvent?.event_id ?? null"
+        @select="selectEvent"
+      />
       <div v-if="currentCase" class="main-grid">
         <aside>
           <EvidenceLibrary
