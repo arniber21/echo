@@ -1,0 +1,39 @@
+backend/rewind/analysis/__init__.py
+  s_4d6956e576b617::t_26eacefa7213ee 1-6
+backend/rewind/analysis/mock.py
+  s_4d6956e576b617::t_180dc364abdd7b 1-26
+backend/rewind/analysis/cache.py
+  s_4d6956e576b617::t_27fc12232f8c71 1-42
+backend/rewind/analysis/validation.py
+  s_4d6956e576b617::t_26d5bcd7c1d644 41-44,59-63
+  s_4d6956e576b617::t_180dc364abdd7b 1-40,45-58
+backend/rewind/analysis/pipeline.py
+  s_4d6956e576b617::t_26eacefa7213ee 1-129
+backend/rewind/analysis/prompts.py
+  s_4d6956e576b617::t_180dc364abdd7b 1-51
+backend/rewind/analysis/check_live.py
+  s_4d6956e576b617::t_97b36262f3c0bb 1-64
+backend/rewind/analysis/provider.py
+  s_4d6956e576b617::t_27fc12232f8c71 1-91
+backend/rewind/analysis/types.py
+  s_4d6956e576b617::t_26d5bcd7c1d644 21,41
+  s_4d6956e576b617::t_27fc12232f8c71 1-20,22-40,42-44
+backend/tests/test_analysis_pipeline.py
+  s_4d6956e576b617::t_dfb999b2c428e2 1-142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ebe743a70d1a5265f0808c0bf37b5bf5f7316f3a",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
