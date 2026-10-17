@@ -1,0 +1,33 @@
+e2e/tests/answers.spec.ts
+  s_4d6956e576b617::t_8b9db77fcfa23c 29-38,82-112
+e2e/tests/evidence-signals.spec.ts
+  s_4d6956e576b617::t_520331ccbf5427 23,49,101,119
+frontend/app/components/AnswerQuestion.vue
+  s_4d6956e576b617::t_3a1af076a62ccb 30-35
+frontend/app/components/EvidenceSignals.vue
+  s_4d6956e576b617::t_6036c1fae91e9a 2-8,16,54-58,124
+frontend/app/components/VideoRelationships.vue
+  s_4d6956e576b617::t_7d2a3ba5551ee2 1-114
+frontend/app/pages/index.vue
+  s_4d6956e576b617::t_c390fa8fb8e5ac 64,311
+frontend/app/utils/intelligence.ts
+  s_4d6956e576b617::t_2794049c38691c 1,31-41
+frontend/tests/intelligence.test.ts
+  s_4d6956e576b617::t_1bd3e410534108 4-9,52-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4ec060dbbc4fa6741a44499c33a932a15537bf59",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
