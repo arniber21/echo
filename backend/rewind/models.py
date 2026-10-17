@@ -100,6 +100,27 @@ class MediaFile(Contract):
     captured_at: datetime | None = None
 
 
+class MemoryEntry(Contract):
+    """An evidence-linked account, never a private reasoning trace."""
+
+    entry_id: str = Field(min_length=1, max_length=100)
+    kind: Literal[
+        "observation", "testimony", "inference", "summary", "question", "conflict"
+    ]
+    text: str = Field(min_length=1, max_length=16000)
+    source_refs: list[SourceRef] = Field(default_factory=list)
+    first_revision: int = Field(ge=1)
+    last_revision: int = Field(ge=1)
+    status: Literal["active", "superseded"] = "active"
+
+
+class CaseMemory(Contract):
+    revision: int = Field(ge=1)
+    updated_at: datetime
+    entries: list[MemoryEntry] = Field(default_factory=list)
+    summary_entry_ids: list[str] = Field(default_factory=list)
+
+
 class AnalysisRevision(Contract):
     """A previous completed reconstruction and its exact evidence set."""
 
@@ -121,6 +142,7 @@ class Case(Contract):
     analyzed_at: datetime | None = None
     analyzed_source_ids: list[str] = Field(default_factory=list)
     analysis_history: list[AnalysisRevision] = Field(default_factory=list)
+    memory: CaseMemory | None = None
 
 
 class Job(Contract):

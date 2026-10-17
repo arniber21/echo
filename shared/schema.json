@@ -103,6 +103,41 @@
       "title": "AnalysisRevision",
       "type": "object"
     },
+    "CaseMemory": {
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/MemoryEntry"
+          },
+          "title": "Entries",
+          "type": "array"
+        },
+        "summary_entry_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Summary Entry Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "revision",
+        "updated_at"
+      ],
+      "title": "CaseMemory",
+      "type": "object"
+    },
     "Claim": {
       "additionalProperties": false,
       "properties": {
@@ -375,6 +410,71 @@
       "title": "MediaFile",
       "type": "object"
     },
+    "MemoryEntry": {
+      "additionalProperties": false,
+      "description": "An evidence-linked account, never a private reasoning trace.",
+      "properties": {
+        "entry_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Entry Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "observation",
+            "testimony",
+            "inference",
+            "summary",
+            "question",
+            "conflict"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "first_revision": {
+          "minimum": 1,
+          "title": "First Revision",
+          "type": "integer"
+        },
+        "last_revision": {
+          "minimum": 1,
+          "title": "Last Revision",
+          "type": "integer"
+        },
+        "status": {
+          "default": "active",
+          "enum": [
+            "active",
+            "superseded"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entry_id",
+        "kind",
+        "text",
+        "first_revision",
+        "last_revision"
+      ],
+      "title": "MemoryEntry",
+      "type": "object"
+    },
     "SourceRef": {
       "additionalProperties": false,
       "properties": {
@@ -507,6 +607,17 @@
           },
           "title": "Analysis History",
           "type": "array"
+        },
+        "memory": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CaseMemory"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [

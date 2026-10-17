@@ -17,6 +17,13 @@ export interface AnalysisRevision {
   analysis: Analysis
 }
 
+export interface CaseMemory {
+  revision: number
+  updated_at: string
+  entries: Array<MemoryEntry>
+  summary_entry_ids: Array<string>
+}
+
 export interface Claim {
   text: string
   source_refs: Array<SourceRef>
@@ -60,6 +67,16 @@ export interface MediaFile {
   captured_at: string | null
 }
 
+export interface MemoryEntry {
+  entry_id: string
+  kind: "observation" | "testimony" | "inference" | "summary" | "question" | "conflict"
+  text: string
+  source_refs: Array<SourceRef>
+  first_revision: number
+  last_revision: number
+  status: "active" | "superseded"
+}
+
 export interface SourceRef {
   source_id: string
   source_start: number | null
@@ -79,6 +96,7 @@ export interface Case {
   analyzed_at: string | null
   analyzed_source_ids: Array<string>
   analysis_history: Array<AnalysisRevision>
+  memory: CaseMemory | null
 }
 
 export interface Job {
