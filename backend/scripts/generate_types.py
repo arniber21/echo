@@ -18,6 +18,8 @@ def ts(schema: dict) -> str:
     if "const" in schema:
         return json.dumps(schema["const"])
     kind = schema.get("type")
+    if kind == "object" and isinstance(schema.get("additionalProperties"), dict):
+        return f"Record<string, {ts(schema['additionalProperties'])}>"
     if kind == "array":
         return f"Array<{ts(schema['items'])}>"
     return {

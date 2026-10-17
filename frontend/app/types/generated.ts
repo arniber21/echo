@@ -16,6 +16,14 @@ export interface AnalysisRevision {
   media_count: number
   media_files: Array<MediaFile>
   analysis: Analysis
+  intelligence: EvidenceIntelligence | null
+}
+
+export interface BoxEdges {
+  top: number
+  bottom: number
+  left: number
+  right: number
 }
 
 export interface CaseMemory {
@@ -28,6 +36,12 @@ export interface CaseMemory {
 export interface Claim {
   text: string
   source_refs: Array<SourceRef>
+}
+
+export interface ClaimAssessment {
+  claim_index: number
+  supported_probability: number
+  overclaim_probability: number
 }
 
 export interface Event {
@@ -49,11 +63,32 @@ export interface Event {
   supports: Array<string>
 }
 
+export interface EvidenceIntelligence {
+  model: string
+  version: string
+  status: "complete" | "partial" | "unavailable"
+  sources: Array<SourceIntelligence>
+  claims: Array<ClaimAssessment>
+  input_tokens: number
+  elapsed_seconds: number
+  diagnostics: Array<string>
+}
+
 export interface Finding {
   id: string
   title: string
   description: string
   source_refs: Array<SourceRef>
+}
+
+export interface FrameAssessment {
+  source_time: number | null
+  signals: Record<string, number>
+  vehicle_box: BoxEdges | null
+  box_confidence: number | null
+  image_sha256: string
+  prepared_width: number
+  prepared_height: number
 }
 
 export interface MediaFile {
@@ -77,6 +112,12 @@ export interface MemoryEntry {
   first_revision: number
   last_revision: number
   status: "active" | "superseded"
+}
+
+export interface SourceIntelligence {
+  source_id: string
+  frames: Array<FrameAssessment>
+  labels: Record<string, number>
 }
 
 export interface SourceMetadata {
@@ -108,6 +149,7 @@ export interface Case {
   analyzed_media_files: Array<MediaFile>
   analysis_history: Array<AnalysisRevision>
   memory: CaseMemory | null
+  intelligence: EvidenceIntelligence | null
 }
 
 export interface Job {

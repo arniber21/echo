@@ -6,6 +6,8 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from rewind.intelligence.models import EvidenceIntelligence
+
 
 class Contract(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
@@ -162,6 +164,7 @@ class AnalysisRevision(Contract):
     media_count: int = Field(ge=0)
     media_files: list[MediaFile] = Field(default_factory=list)
     analysis: Analysis
+    intelligence: EvidenceIntelligence | None = None
 
 
 class Case(Contract):
@@ -177,6 +180,7 @@ class Case(Contract):
     analyzed_media_files: list[MediaFile] = Field(default_factory=list)
     analysis_history: list[AnalysisRevision] = Field(default_factory=list)
     memory: CaseMemory | None = None
+    intelligence: EvidenceIntelligence | None = None
 
 
 class Job(Contract):

@@ -98,6 +98,17 @@
         },
         "analysis": {
           "$ref": "#/$defs/Analysis"
+        },
+        "intelligence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceIntelligence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -108,6 +119,43 @@
         "analysis"
       ],
       "title": "AnalysisRevision",
+      "type": "object"
+    },
+    "BoxEdges": {
+      "additionalProperties": false,
+      "properties": {
+        "top": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Top",
+          "type": "number"
+        },
+        "bottom": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Bottom",
+          "type": "number"
+        },
+        "left": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Left",
+          "type": "number"
+        },
+        "right": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Right",
+          "type": "number"
+        }
+      },
+      "required": [
+        "top",
+        "bottom",
+        "left",
+        "right"
+      ],
+      "title": "BoxEdges",
       "type": "object"
     },
     "CaseMemory": {
@@ -168,6 +216,35 @@
         "source_refs"
       ],
       "title": "Claim",
+      "type": "object"
+    },
+    "ClaimAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_index": {
+          "minimum": 0,
+          "title": "Claim Index",
+          "type": "integer"
+        },
+        "supported_probability": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Supported Probability",
+          "type": "number"
+        },
+        "overclaim_probability": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Overclaim Probability",
+          "type": "number"
+        }
+      },
+      "required": [
+        "claim_index",
+        "supported_probability",
+        "overclaim_probability"
+      ],
+      "title": "ClaimAssessment",
       "type": "object"
     },
     "Event": {
@@ -310,6 +387,69 @@
       "title": "Event",
       "type": "object"
     },
+    "EvidenceIntelligence": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceIntelligence"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "claims": {
+          "items": {
+            "$ref": "#/$defs/ClaimAssessment"
+          },
+          "title": "Claims",
+          "type": "array"
+        },
+        "input_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "elapsed_seconds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Elapsed Seconds",
+          "type": "number"
+        },
+        "diagnostics": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Diagnostics",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model",
+        "version",
+        "status"
+      ],
+      "title": "EvidenceIntelligence",
+      "type": "object"
+    },
     "Finding": {
       "additionalProperties": false,
       "properties": {
@@ -343,6 +483,80 @@
         "description"
       ],
       "title": "Finding",
+      "type": "object"
+    },
+    "FrameAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "source_time": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Time"
+        },
+        "signals": {
+          "additionalProperties": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Signals",
+          "type": "object"
+        },
+        "vehicle_box": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoxEdges"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "box_confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Box Confidence"
+        },
+        "image_sha256": {
+          "default": "",
+          "title": "Image Sha256",
+          "type": "string"
+        },
+        "prepared_width": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Prepared Width",
+          "type": "integer"
+        },
+        "prepared_height": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Prepared Height",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "signals"
+      ],
+      "title": "FrameAssessment",
       "type": "object"
     },
     "MediaFile": {
@@ -483,6 +697,36 @@
         "last_revision"
       ],
       "title": "MemoryEntry",
+      "type": "object"
+    },
+    "SourceIntelligence": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "frames": {
+          "items": {
+            "$ref": "#/$defs/FrameAssessment"
+          },
+          "title": "Frames",
+          "type": "array"
+        },
+        "labels": {
+          "additionalProperties": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Labels",
+          "type": "object"
+        }
+      },
+      "required": [
+        "source_id"
+      ],
+      "title": "SourceIntelligence",
       "type": "object"
     },
     "SourceMetadata": {
@@ -667,6 +911,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/CaseMemory"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "intelligence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceIntelligence"
             },
             {
               "type": "null"
