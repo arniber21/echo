@@ -1,0 +1,29 @@
+e2e/tests/responsive-tabs.spec.ts
+  s_4d6956e576b617::t_00fd3087c78db1 2,14
+  s_4d6956e576b617::t_f9938e3df7c4a6 1,3-13,15-19
+frontend/app/components/AnalysisInsights.vue
+  s_4d6956e576b617::t_00fd3087c78db1 43
+frontend/app/components/EvidenceSignals.vue
+  s_4d6956e576b617::t_f9938e3df7c4a6 56
+frontend/app/components/VideoRelationships.vue
+  s_4d6956e576b617::t_f9938e3df7c4a6 2,4-9,15-27,42,45-53,67,78-91,93-100,102-104
+  s_4d6956e576b617::t_72a848a8477ddf 92,101
+e2e/tests/answers.spec.ts
+  s_4d6956e576b617::t_f9938e3df7c4a6 1-3,5-31,33-35,37-128,130-167,169-186,188-245
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2c730b9f31c129bb656b65c8af6c2c0c1cce67d3",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
