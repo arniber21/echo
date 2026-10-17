@@ -4,6 +4,7 @@ from collections.abc import Mapping
 
 from rewind.models import Analysis, CaseAnswer, MediaFile, SourceType, validate_analysis
 
+from .content_alignment import ContentAlignment
 from .types import Extraction
 
 
@@ -27,6 +28,7 @@ def validate_synthesis(
     media: list[MediaFile],
     extractions: Mapping[str, Extraction],
     answers: list[CaseAnswer] | None = None,
+    alignments: Mapping[str, ContentAlignment] | None = None,
 ) -> None:
     validate_analysis(result, media, answers)
     expected = {
@@ -38,7 +40,10 @@ def validate_synthesis(
         raise ValueError("Synthesis must retain all and only extracted events")
     source_map = {source.source_id: source for source in media}
     anchor = next(
-        (source for source in media if source.source_type == SourceType.VIDEO), None
+        (source for source in media if source.source_id == result.clock_source_id),
+        next(
+            (source for source in media if source.source_type == SourceType.VIDEO), None
+        ),
     )
     for event in result.events:
         source_id, extracted = expected[event.event_id]
@@ -68,11 +73,30 @@ def validate_synthesis(
                 or event.case_max - event.case_best > 0.51
             ):
                 raise ValueError("Primary video uncertainty must remain tight")
+        measured = (alignments or {}).get(source_id)
+        if measured and not (anchor and source_id == anchor.source_id):
+            expected_best = measured.offset_seconds + (event.source_start or 0)
+            if (
+                abs(event.case_best - expected_best) > 0.001
+                or event.case_min is None
+                or event.case_max is None
+                or abs(
+                    event.case_min
+                    - max(0, expected_best - measured.uncertainty_seconds)
+                )
+                > 0.001
+                or abs(event.case_max - (expected_best + measured.uncertainty_seconds))
+                > 0.001
+            ):
+                raise ValueError(
+                    "Measured content alignment must retain its source offset"
+                )
         source = source_map[source_id]
         if (
             source.source_type == SourceType.PHOTO
             and not (source.captured_at and anchor and anchor.captured_at)
             and event.case_max is not None
+            and source_id not in (alignments or {})
         ):
             raise ValueError(
                 "Photos without relative capture metadata need an open end"
@@ -98,6 +122,7 @@ def finalize_synthesis(
     media: list[MediaFile],
     extractions: Mapping[str, Extraction],
     answers: list[CaseAnswer] | None = None,
+    alignments: Mapping[str, ContentAlignment] | None = None,
 ) -> None:
     """Set the known primary clock in-place, then validate all evidence and inferred alignment.
 
@@ -106,10 +131,18 @@ def finalize_synthesis(
     """
     videos = [source for source in media if source.source_type == SourceType.VIDEO]
     anchor = (
-        min(videos, key=lambda source: (source.sha256, source.source_id))
+        min(
+            videos,
+            key=lambda source: (
+                -(source.duration_seconds or 0),
+                source.sha256,
+                source.source_id,
+            ),
+        )
         if videos
         else None
     )
+    result.clock_source_id = anchor.source_id if anchor else None
     for event in result.events:
         if (
             anchor
@@ -121,4 +154,14 @@ def finalize_synthesis(
             event.case_max = event.source_start + 0.5
             event.alignment_basis = "Primary video source clock"
             event.alignment_confidence = 1
-    validate_synthesis(result, media, extractions, answers)
+    for event in result.events:
+        alignment = (alignments or {}).get(event.source_id)
+        if alignment is None or (anchor and event.source_id == anchor.source_id):
+            continue
+        best = alignment.offset_seconds + (event.source_start or 0)
+        event.case_best = best
+        event.case_min = max(0, best - alignment.uncertainty_seconds)
+        event.case_max = best + alignment.uncertainty_seconds
+        event.alignment_basis = alignment.basis
+        event.alignment_confidence = alignment.confidence
+    validate_synthesis(result, media, extractions, answers, alignments)

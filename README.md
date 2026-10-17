@@ -171,7 +171,11 @@ with the full incident against human annotations.
 
 ## Evidence semantics
 
-- Video time zero anchors the merged case axis. Clicking an event seeks the source
+- New analyses anchor the merged case axis to the longest video's time zero and
+  preserve that clock in saved revisions. Content matching can locate excerpts,
+  copied audio, and uniquely matching stills inside that recording; unmatched
+  sources retain explicit uncertainty. See [alignment and verification](docs/content-alignment.md).
+  Clicking an event seeks the source
   player to `source_start`, never to the estimated `case_best` placement.
 - Audio statements use content alignment, explicit confidence, and uncertainty
   ranges. Testimony remains testimony.

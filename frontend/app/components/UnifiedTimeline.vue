@@ -5,7 +5,7 @@ import {
   formatTime,
   hasCasePlacement,
   placementLabel,
-  primaryVideo,
+  analysisAnchor,
   rangeStyle,
   sourceTimeLabel,
 } from '../utils/timeline'
@@ -15,10 +15,11 @@ const props = defineProps<{
   media: MediaFile[]
   selectedId: string | null
   anchorMedia?: MediaFile[]
+  clockSourceId?: string | null
   analyzedSourceIds?: string[]
 }>()
 const emit = defineEmits<{ select: [event: Event] }>()
-const anchor = computed(() => primaryVideo(props.anchorMedia ?? props.media))
+const anchor = computed(() => analysisAnchor(props.anchorMedia ?? props.media, props.clockSourceId))
 const extent = computed(() => caseExtent(props.events, props.media))
 const ticks = computed(() => Array.from({ length: 5 }, (_, index) => (extent.value * index) / 4))
 const lanes = computed(() =>

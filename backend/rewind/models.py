@@ -118,6 +118,7 @@ class AnswerUpdate(Contract):
 
 
 class Analysis(Contract):
+    clock_source_id: str | None = None
     events: list[Event]
     summary: list[Claim]
     missing_evidence: list[Finding] = Field(default_factory=list)
@@ -260,10 +261,18 @@ def validate_analysis(
     if len(sources) != len(media):
         raise ValueError("Media source IDs must be unique")
     videos = [item for item in media if item.source_type == SourceType.VIDEO]
-    # File content selects the primary clock, independent of multipart order.
-    primary_video = (
-        min(videos, key=lambda item: (item.sha256, item.source_id)) if videos else None
-    )
+    # Legacy reports retain their original hash-selected clock. New reports persist
+    # an explicit anchor so adding sources never relabels a saved reconstruction.
+    if analysis.clock_source_id is not None:
+        primary_video = sources.get(analysis.clock_source_id)
+        if primary_video is None or primary_video.source_type != SourceType.VIDEO:
+            raise ValueError("Case clock must reference an existing video")
+    else:
+        primary_video = (
+            min(videos, key=lambda item: (item.sha256, item.source_id))
+            if videos
+            else None
+        )
     event_ids = {event.event_id for event in analysis.events}
     if len(event_ids) != len(analysis.events):
         raise ValueError("Event IDs must be unique")

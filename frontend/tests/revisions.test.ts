@@ -9,6 +9,7 @@ import {
 } from '../app/utils/revisions'
 
 const analysis: Analysis = {
+  clock_source_id: null,
   events: [],
   summary: [],
   missing_evidence: [],

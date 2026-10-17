@@ -5,12 +5,14 @@ import hashlib
 import json
 import logging
 from collections.abc import Awaitable, Callable, Mapping
+from dataclasses import asdict
 from pathlib import Path
 
 from rewind.intelligence.models import EvidenceIntelligence
 from rewind.models import Analysis, Case, MediaFile, validate_analysis
 
 from .cache import JsonCache, cache_key
+from .content_alignment import find_content_alignments
 from .mock import mock_analysis
 from .prompts import (
     PROMPT_VERSION,
@@ -37,6 +39,8 @@ def _digest(path: Path) -> str:
 
 def _remap(result: Analysis, ids: Mapping[str, str]) -> Analysis:
     payload = result.model_dump(mode="json")
+    if payload["clock_source_id"] is not None:
+        payload["clock_source_id"] = ids[payload["clock_source_id"]]
     for event in payload["events"]:
         event["source_id"] = ids[event["source_id"]]
     for item in [
@@ -87,7 +91,14 @@ async def analyze(
         real_ids[source_id] = source.source_id
     # Primary video is explicitly deterministic, independent of database ids or upload order.
     canonical.sort(
-        key=lambda source: (source.source_type.value != "video", source.source_id)
+        key=lambda source: (
+            source.source_type.value != "video",
+            -(source.duration_seconds or 0)
+            if source.source_type.value == "video"
+            else 0,
+            source.sha256,
+            source.source_id,
+        )
     )
     cache = JsonCache(settings.cache_dir)
     extractions: dict[str, Extraction] = {}
@@ -211,6 +222,13 @@ async def analyze(
                     "limitations": extractions[source.source_id].limitations,
                 }
             )
+        # Clock alignment is measured against actual media bytes, not inferred
+        # from filenames, source timestamps, or classifier incident identity.
+        await progress("matching_views", 72)
+        alignments = await find_content_alignments(canonical, paths, cache)
+        for record in records:
+            measured = alignments.get(record["source_id"])
+            record["measured_clock_alignment"] = asdict(measured) if measured else None
         if (
             intelligence_service is not None
             and intelligence_report is not None
@@ -279,7 +297,9 @@ async def analyze(
         result = await asyncio.to_thread(cache.read, key, Analysis)
         if result is not None:
             try:
-                validate_synthesis(result, canonical, extractions, case.answers)
+                validate_synthesis(
+                    result, canonical, extractions, case.answers, alignments
+                )
             except ValueError:
                 result = None
         if result is None:
@@ -287,7 +307,7 @@ async def analyze(
                 SYNTHESIS_PROMPT + json.dumps(records),
                 Analysis,
                 validate=lambda output: finalize_synthesis(
-                    output, canonical, extractions, case.answers
+                    output, canonical, extractions, case.answers, alignments
                 ),
             )
             result = result.model_copy(

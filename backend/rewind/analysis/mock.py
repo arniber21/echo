@@ -4,6 +4,21 @@ from rewind.models import Analysis, Case, Claim, Event, Finding, SourceRef, Sour
 
 
 def mock_analysis(case: Case) -> Analysis:
+    videos = [
+        source for source in case.media_files if source.source_type == SourceType.VIDEO
+    ]
+    anchor = (
+        min(
+            videos,
+            key=lambda source: (
+                -(source.duration_seconds or 0),
+                source.sha256,
+                source.source_id,
+            ),
+        )
+        if videos
+        else None
+    )
     events = []
     for index, media in enumerate(case.media_files):
         is_photo = media.source_type == SourceType.PHOTO
@@ -38,6 +53,7 @@ def mock_analysis(case: Case) -> Analysis:
     ]
     refs = [SourceRef(source_id=media.source_id) for media in case.media_files]
     return Analysis(
+        clock_source_id=anchor.source_id if anchor else None,
         events=events,
         summary=[
             Claim(

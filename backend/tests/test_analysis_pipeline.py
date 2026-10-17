@@ -795,3 +795,114 @@ def test_video_relationships_reach_synthesis_and_remap_to_original_sources(
         assert {pair.source_a, pair.source_b} == {video.source_id, second.source_id}
         assert pair.matches == []
     assert "matching_views" in [call.args[0] for call in progress.await_args_list]
+
+
+def test_longest_video_clock_is_explicit_while_legacy_report_keeps_its_clock(case):
+    from rewind.analysis.validation import finalize_synthesis
+    from rewind.models import validate_analysis
+
+    short = case.media_files[0].model_copy(
+        update={"duration_seconds": 10, "sha256": "a"}
+    )
+    full = short.model_copy(
+        update={"source_id": "full", "duration_seconds": 25, "sha256": "z"}
+    )
+    original = next(
+        event for event in case.analysis.events if event.source_id == short.source_id
+    )
+    event = original.model_copy(
+        update={"event_id": "event-full-0", "source_id": "full", "supports": []}
+    )
+    extraction = Extraction(
+        events=[
+            ExtractedEvent(
+                title=event.title,
+                description=event.description,
+                source_start=event.source_start,
+                source_end=event.source_end,
+                evidence_type=event.evidence_type,
+                confidence=event.confidence,
+            )
+        ],
+        limitations=[],
+    )
+    result = Analysis(events=[event], summary=[])
+    finalize_synthesis(result, [short, full], {"full": extraction})
+    assert result.clock_source_id == "full"
+    assert result.events[0].case_best == event.source_start
+    validate_analysis(result, [full, short])
+    legacy = result.model_copy(deep=True)
+    legacy.clock_source_id = None
+    legacy.events[0].source_id = short.source_id
+    # Old saved analyses still use the earlier SHA clock, never the new heuristic.
+    validate_analysis(legacy, [short, full])
+    result.clock_source_id = "missing"
+    with pytest.raises(ValueError, match="Case clock must reference an existing video"):
+        validate_analysis(result, [short, full])
+
+
+def test_measured_offsets_place_clips_and_photos_without_rewriting_source_times(case):
+    from rewind.analysis.content_alignment import ContentAlignment
+    from rewind.analysis.validation import finalize_synthesis, validate_synthesis
+
+    anchor = case.media_files[0].model_copy(
+        update={"source_id": "parent", "duration_seconds": 25}
+    )
+    clip = anchor.model_copy(update={"source_id": "clip", "duration_seconds": 5})
+    photo = next(
+        source for source in case.media_files if source.source_type.value == "photo"
+    ).model_copy(update={"source_id": "still"})
+    events, extractions = [], {}
+    original = case.analysis.events[0]
+    for source, start, end in [
+        (anchor, 4.0, 5.0),
+        (clip, 0.5, 1.0),
+        (photo, None, None),
+    ]:
+        event = original.model_copy(
+            update={
+                "source_id": source.source_id,
+                "source_type": source.source_type,
+                "event_id": f"event-{source.source_id}-0",
+                "source_start": start,
+                "source_end": end,
+                "case_min": 0,
+                "case_best": 0,
+                "case_max": None,
+                "supports": [],
+            }
+        )
+        events.append(event)
+        extractions[source.source_id] = Extraction(
+            events=[
+                ExtractedEvent(
+                    title=event.title,
+                    description=event.description,
+                    source_start=start,
+                    source_end=end,
+                    evidence_type=event.evidence_type,
+                    confidence=event.confidence,
+                )
+            ],
+            limitations=[],
+        )
+    measured = {
+        "clip": ContentAlignment(2, 0.5, 0.95, "Five matching frames"),
+        "still": ContentAlignment(8, 0.5, 0.95, "Unique still-frame match"),
+    }
+    result = Analysis(events=events, summary=[])
+    finalize_synthesis(result, [clip, photo, anchor], extractions, alignments=measured)
+    assert result.clock_source_id == "parent"
+    assert (events[1].source_start, events[1].source_end) == (0.5, 1)
+    assert (events[1].case_min, events[1].case_best, events[1].case_max) == (2, 2.5, 3)
+    assert events[2].source_start is None
+    assert (events[2].case_min, events[2].case_best, events[2].case_max) == (
+        7.5,
+        8,
+        8.5,
+    )
+    result.events[1].case_best += 0.1
+    with pytest.raises(ValueError, match="Measured content alignment"):
+        validate_synthesis(
+            result, [anchor, clip, photo], extractions, alignments=measured
+        )

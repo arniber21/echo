@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import type { Event, MediaFile } from '../app/types/generated'
 import { emptySourceMetadata } from '../app/utils/evidence'
 import {
+  analysisAnchor,
   caseExtent,
   eventSourceReference,
   formatTime,
@@ -111,4 +112,26 @@ test('unaligned events preserve source intervals without asserting a case positi
   expect(sourceTimeLabel({ ...unknown, source_start: null, source_end: null })).toBe(
     'Source time unknown',
   )
+})
+
+test('new clocks prefer duration but saved and legacy clocks stay stable', () => {
+  const makeVideo = (source_id: string, sha256: string, duration_seconds: number): MediaFile => ({
+    source_id,
+    sha256,
+    duration_seconds,
+    filename: `${source_id}.mp4`,
+    source_type: 'video',
+    mime_type: 'video/mp4',
+    url: '',
+    size_bytes: 1,
+    captured_at: null,
+    metadata: emptySourceMetadata(),
+  })
+  const short = makeVideo('splice', 'a', 5)
+  const full = makeVideo('full', 'z', 25)
+  expect(primaryVideo([short, full])?.source_id).toBe('full')
+  expect(primaryVideo([full, short])?.source_id).toBe('full')
+  expect(analysisAnchor([short, full], 'full')?.source_id).toBe('full')
+  expect(analysisAnchor([short, full], null)?.source_id).toBe('splice')
+  expect(analysisAnchor([short, full], 'missing')).toBeUndefined()
 })

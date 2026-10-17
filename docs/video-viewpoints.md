@@ -20,6 +20,9 @@ presence of a similar vehicle cannot establish a common instant. Proposed detail
 event matches also receive a Jev text check; uncertain or failed checks remove the
 match. Reference validation requires an observation from each corresponding source.
 
+Separate [content matching](content-alignment.md) can locate excerpts or copied
+audio inside a primary recording; it does not synchronize independent cameras.
+
 The synthesis receives these provisional assessments so viewpoint differences
 alone need not become contradictions. They are not proof of identity. Each source
 retains its own clock, and the comparison does not calculate a clock offset.

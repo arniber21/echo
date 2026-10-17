@@ -5,7 +5,7 @@ import {
   formatTime,
   hasCasePlacement,
   placementLabel,
-  primaryVideo,
+  analysisAnchor,
   rangeStyle,
   sourceTimeLabel,
 } from '../utils/timeline'
@@ -13,11 +13,12 @@ const props = defineProps<{
   events: Event[]
   media: MediaFile[]
   anchorMedia?: MediaFile[]
+  clockSourceId?: string | null
   selectedId: string | null
   supportedIds: string[]
 }>()
 const emit = defineEmits<{ select: [event: Event] }>()
-const anchor = computed(() => primaryVideo(props.anchorMedia ?? props.media))
+const anchor = computed(() => analysisAnchor(props.anchorMedia ?? props.media, props.clockSourceId))
 const extent = computed(() => caseExtent(props.events, props.media))
 const ordered = computed(() =>
   [...props.events].sort(

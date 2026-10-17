@@ -4,6 +4,18 @@
     "Analysis": {
       "additionalProperties": false,
       "properties": {
+        "clock_source_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clock Source Id"
+        },
         "events": {
           "items": {
             "$ref": "#/$defs/Event"

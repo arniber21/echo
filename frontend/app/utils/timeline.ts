@@ -37,7 +37,7 @@ export function placementLabel(event: Event): string {
 
 /** A free-floating source event has no supported position on the case clock. */
 export function hasCasePlacement(event: Event): boolean {
-  return event.case_min !== null || event.case_max !== null
+  return event.case_max !== null || (event.case_min !== null && event.case_min > 0)
 }
 
 /** Show the recorded source interval without turning it into a case interval. */
@@ -64,8 +64,11 @@ export function eventSourceReference(event: Event): SourceRef {
 export function primaryVideo(media: MediaFile[]): MediaFile | undefined {
   return media
     .filter((file) => file.source_type === 'video')
-    .sort((a, b) =>
-      a.sha256 < b.sha256 ? -1 : a.sha256 > b.sha256 ? 1 : a.source_id.localeCompare(b.source_id),
+    .sort(
+      (a, b) =>
+        (b.duration_seconds ?? 0) - (a.duration_seconds ?? 0) ||
+        a.sha256.localeCompare(b.sha256) ||
+        a.source_id.localeCompare(b.source_id),
     )[0]
 }
 
@@ -82,4 +85,18 @@ export function packEventRanges(events: Event[], extent: number): { event: Event
       rowEnds[row] = end
       return { event, row }
     })
+}
+
+/** Saved reports use their persisted clock; pre-clock-field reports used hash order. */
+export function analysisAnchor(
+  media: MediaFile[],
+  clockSourceId?: string | null,
+): MediaFile | undefined {
+  if (clockSourceId)
+    return media.find(
+      (source) => source.source_id === clockSourceId && source.source_type === 'video',
+    )
+  return media
+    .filter((source) => source.source_type === 'video')
+    .sort((a, b) => a.sha256.localeCompare(b.sha256) || a.source_id.localeCompare(b.source_id))[0]
 }

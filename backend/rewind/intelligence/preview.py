@@ -38,7 +38,14 @@ def classification_preview(
         source for source in case.media_files if source.source_type == SourceType.VIDEO
     ]
     anchor = (
-        min(videos, key=lambda source: (source.sha256, source.source_id))
+        min(
+            videos,
+            key=lambda source: (
+                -(source.duration_seconds or 0),
+                source.sha256,
+                source.source_id,
+            ),
+        )
         if videos
         else None
     )
@@ -88,6 +95,7 @@ def classification_preview(
                 )
             )
     analysis = Analysis(
+        clock_source_id=anchor.source_id if anchor else None,
         events=events,
         summary=[
             Claim(
