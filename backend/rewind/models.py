@@ -113,12 +113,33 @@ class MemoryEntry(Contract):
     last_revision: int = Field(ge=1)
     status: Literal["active", "superseded"] = "active"
 
+    @model_validator(mode="after")
+    def ordered_revisions(self) -> Self:
+        if self.last_revision < self.first_revision:
+            raise ValueError("Memory last_revision must not precede first_revision")
+        return self
+
 
 class CaseMemory(Contract):
     revision: int = Field(ge=1)
     updated_at: datetime
     entries: list[MemoryEntry] = Field(default_factory=list)
     summary_entry_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def valid_entries(self) -> Self:
+        entries = {entry.entry_id: entry for entry in self.entries}
+        if len(entries) != len(self.entries):
+            raise ValueError("Memory entry IDs must be unique")
+        if any(entry.last_revision > self.revision for entry in self.entries):
+            raise ValueError("Memory entries cannot reference future revisions")
+        for entry_id in self.summary_entry_ids:
+            entry = entries.get(entry_id)
+            if entry is None or entry.kind != "summary" or entry.status != "active":
+                raise ValueError(
+                    "Memory summary links must reference active summary entries"
+                )
+        return self
 
 
 class AnalysisRevision(Contract):

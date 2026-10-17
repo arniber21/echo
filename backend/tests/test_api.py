@@ -292,7 +292,9 @@ def finish_job(client, app, case_id):
     return client.get(f"/api/cases/{case_id}").json()
 
 
-def test_incremental_video_then_photo_preserves_history_and_restart(tmp_path):
+def test_incremental_video_then_photo_preserves_history_and_restart(
+    tmp_path, monkeypatch
+):
     import shutil
     import subprocess
 
@@ -321,6 +323,15 @@ def test_incremental_video_then_photo_preserves_history_and_restart(tmp_path):
     )
     config = settings(tmp_path / "data", analysis_mode="mock")
     app = create_app(config)
+    from rewind.main import project_memory
+
+    memory_updates = []
+
+    def record_memory(*args):
+        memory_updates.append(args[2])
+        return project_memory(*args)
+
+    monkeypatch.setattr("rewind.main.project_memory", record_memory)
     with TestClient(app) as client:
         initial = client.post(
             "/api/cases", files=[("files", ("initial.mp4", video.read_bytes()))]
@@ -330,6 +341,12 @@ def test_incremental_video_then_photo_preserves_history_and_restart(tmp_path):
         assert first["evidence_revision"] == first["analyzed_revision"] == 1
         assert len(first["analysis"]["events"]) == 1
         original_ids = first["analyzed_source_ids"]
+        assert first["memory"]["revision"] == 1
+        initial_memory = first["memory"]
+        for _ in range(3):
+            assert (
+                client.get(f"/api/cases/{case_id}").json()["memory"] == initial_memory
+            )
         appended = client.post(
             f"/api/cases/{case_id}/media",
             files=[("files", ("later-photo.jpg", jpeg()))],
@@ -341,10 +358,28 @@ def test_incremental_video_then_photo_preserves_history_and_restart(tmp_path):
         assert stale["analysis"] == first["analysis"]
         assert stale["analyzed_source_ids"] == original_ids
         assert stale["analysis_history"] == []
+        assert stale["memory"] == initial_memory
+        assert memory_updates == [1]  # Reads and uploads never regenerate recollection.
         second = finish_job(client, app, case_id)
         assert second["analyzed_revision"] == 2
         assert len(second["analysis"]["events"]) == 2
         assert len(second["analyzed_source_ids"]) == 2
+        assert second["memory"]["revision"] == 2
+        assert memory_updates == [1, 2]
+        prior_inference = next(
+            entry for entry in initial_memory["entries"] if entry["kind"] == "inference"
+        )
+        remembered = next(
+            entry
+            for entry in second["memory"]["entries"]
+            if entry["entry_id"] == prior_inference["entry_id"]
+        )
+        assert remembered["first_revision"] == 1
+        assert remembered["last_revision"] == 2
+        assert remembered["status"] == "active"
+        assert any(
+            entry["status"] == "superseded" for entry in second["memory"]["entries"]
+        )
         snapshot = second["analysis_history"][0]
         assert snapshot["revision"] == 1
         assert snapshot["media_count"] == 1

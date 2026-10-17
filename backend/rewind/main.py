@@ -17,6 +17,7 @@ from fastapi.responses import FileResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from rewind.config import ROOT, Settings
+from rewind.memory import project_memory
 from rewind.models import (
     Analysis,
     AnalysisRevision,
@@ -72,6 +73,10 @@ def seed_demo(store: Store):
     case.analyzed_revision = case.evidence_revision
     case.analyzed_at = case.created_at
     case.analyzed_source_ids = [item.source_id for item in case.media_files]
+    if case.analysis is not None:
+        case.memory = project_memory(
+            None, case.analysis, case.evidence_revision, case.created_at
+        )
     paths = {}
     for media in case.media_files:
         path = ROOT / "demo/media" / media.filename
@@ -247,6 +252,12 @@ def create_app(
                     current.analysis = analysis
                     current.analyzed_revision = current.evidence_revision
                     current.analyzed_at = datetime.now(UTC)
+                    current.memory = project_memory(
+                        current.memory,
+                        analysis,
+                        current.evidence_revision,
+                        current.analyzed_at,
+                    )
                     current.analyzed_source_ids = [
                         item.source_id for item in current.media_files
                     ]
