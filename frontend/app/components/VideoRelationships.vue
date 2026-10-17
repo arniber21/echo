@@ -1,13 +1,30 @@
 <script setup lang="ts">
-import type { MediaFile, SourceRef, VideoRelationship } from '../types/generated'
+import type { Analysis, MediaFile, SourceRef, VideoRelationship } from '../types/generated'
 import { probabilityLabel, relationshipLabel } from '../utils/intelligence'
-const props = defineProps<{ relationships: VideoRelationship[]; media: MediaFile[] }>()
+import { eventSourceReference, formatTime } from '../utils/timeline'
+const props = defineProps<{
+  relationships: VideoRelationship[]
+  media: MediaFile[]
+  analysis?: Analysis | null
+}>()
 const emit = defineEmits<{ select: [reference: SourceRef] }>()
 const pairs = computed(() =>
   props.relationships.flatMap((relationship) => {
     const first = props.media.find((source) => source.source_id === relationship.source_a)
     const second = props.media.find((source) => source.source_id === relationship.source_b)
-    return first && second ? [{ relationship, first, second }] : []
+    if (!first || !second) return []
+    const matches = (relationship.detailed_review?.matches ?? relationship.matches).flatMap(
+      (match) => {
+        const eventA = props.analysis?.events.find(
+          (event) => event.event_id === match.event_a && event.source_id === first.source_id,
+        )
+        const eventB = props.analysis?.events.find(
+          (event) => event.event_id === match.event_b && event.source_id === second.source_id,
+        )
+        return eventA && eventB ? [{ eventA, eventB }] : []
+      },
+    )
+    return [{ relationship, first, second, matches }]
   }),
 )
 function open(source: MediaFile) {
@@ -22,10 +39,18 @@ function open(source: MediaFile) {
       establish a shared clock.
     </p>
     <article
-      v-for="{ relationship, first, second } in pairs"
+      v-for="{ relationship, first, second, matches } in pairs"
       :key="`${relationship.source_a}:${relationship.source_b}`"
     >
-      <h4>{{ relationshipLabel(relationship.relationship) }}</h4>
+      <h4>
+        {{
+          relationshipLabel(relationship.detailed_review?.relationship ?? relationship.relationship)
+        }}
+      </h4>
+      <p v-if="relationship.detailed_review" class="relationship-note">
+        Detailed comparison · {{ relationship.detailed_review.model }} ·
+        {{ probabilityLabel(relationship.detailed_review.confidence) }} confidence
+      </p>
       <div class="relationship-sources">
         <UButton
           v-for="source in [first, second]"
@@ -39,6 +64,7 @@ function open(source: MediaFile) {
           >{{ source.metadata.label || source.filename }}</UButton
         >
       </div>
+      <p v-if="relationship.detailed_review" class="relationship-note">Initial Jev estimates</p>
       <dl>
         <div>
           <dt>Same incident</dt>
@@ -49,7 +75,33 @@ function open(source: MediaFile) {
           <dd>{{ probabilityLabel(relationship.different_view_probability) }}</dd>
         </div>
       </dl>
-      <p class="relationship-basis">{{ relationship.basis }}</p>
+      <p class="relationship-basis">
+        {{ relationship.detailed_review?.basis ?? relationship.basis }}
+      </p>
+      <div
+        v-for="{ eventA, eventB } in matches"
+        :key="`${eventA.event_id}:${eventB.event_id}`"
+        class="relationship-sources"
+      >
+        <UButton
+          color="neutral"
+          variant="outline"
+          size="sm"
+          @click="emit('select', eventSourceReference(eventA))"
+        >
+          Compare candidate event · {{ first.metadata.label || first.filename }} ·
+          {{ formatTime(eventA.source_start) }}
+        </UButton>
+        <UButton
+          color="neutral"
+          variant="outline"
+          size="sm"
+          @click="emit('select', eventSourceReference(eventB))"
+        >
+          Compare candidate event · {{ second.metadata.label || second.filename }} ·
+          {{ formatTime(eventB.source_start) }}
+        </UButton>
+      </div>
       <p class="relationship-note">Unverified model assessment. Review both recordings.</p>
     </article>
   </section>

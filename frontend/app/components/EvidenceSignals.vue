@@ -53,6 +53,7 @@ const statusLabel = computed(() => {
       <p v-if="pending" class="signals-note">These checks do not include the newest evidence.</p>
       <VideoRelationships
         :relationships="intelligence.video_relationships"
+        :analysis="analysis"
         :media="media"
         @select="emit('select', $event)"
       />

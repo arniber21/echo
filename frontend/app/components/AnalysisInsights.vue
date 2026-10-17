@@ -40,7 +40,7 @@ watch(
       variant="link"
       class="insight-tabs"
       aria-label="Analysis details"
-      :ui="{ indicator: 'hidden', trigger: 'transition-none', list: 'gap-0' }"
+      :ui="{ indicator: 'hidden', trigger: 'transition-none', list: 'gap-0 flex-wrap' }"
     />
     <div class="insight-content">
       <template v-if="tab === 'summary'"
