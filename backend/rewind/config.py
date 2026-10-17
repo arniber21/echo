@@ -15,6 +15,7 @@ class Settings(BaseSettings):
         populate_by_name=True,
     )
     data_dir: Path = ROOT / "data"
+    photon_base_url: str = "https://photon.komoot.io"
     seed_demo: bool = Field(default=False, validation_alias="REWIND_SEED_DEMO")
     gemini_api_key: SecretStr | None = None
     gemini_model: str = "gemini-3.8-flash"

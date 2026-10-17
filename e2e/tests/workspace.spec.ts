@@ -184,6 +184,7 @@ test('obvious file intake captures annotations and editing them preserves the or
   await page.getByLabel('Label for demo-video.mp4', { exact: true }).fill('Front camera')
   await page.getByLabel('Recorded by for demo-video.mp4', { exact: true }).fill('Driver A')
   await page.getByLabel('Location for demo-video.mp4', { exact: true }).fill('Main and Third')
+  await dialog.getByRole('button', { name: 'Use a time description', exact: true }).click()
   await page.getByLabel('Recording time for demo-video.mp4', { exact: true }).fill('Approximately 14:30 PDT')
   await page.getByLabel('Notes for demo-video.mp4', { exact: true }).fill('Original camera recording; time reported by uploader.')
   await page.getByRole('button', { name: 'Create case with 1 file', exact: true }).click()

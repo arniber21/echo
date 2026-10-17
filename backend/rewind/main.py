@@ -21,6 +21,7 @@ from rewind.analysis.errors import classify_failure
 from rewind.config import ROOT, Settings
 from rewind.intelligence.models import EvidenceIntelligence
 from rewind.intelligence.preview import classification_preview
+from rewind.locations import location_router
 from rewind.memory import project_memory
 from rewind.models import (
     Analysis,
@@ -124,6 +125,7 @@ def create_app(
         await asyncio.gather(*tasks, return_exceptions=True)
 
     app = FastAPI(title="Rewind API", version="0.1.0", lifespan=lifespan)
+    app.include_router(location_router(config.photon_base_url))
     app.add_middleware(UploadLimit, limit=config.max_request_bytes)
     app.add_middleware(
         CORSMiddleware,

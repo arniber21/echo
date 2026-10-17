@@ -70,6 +70,7 @@ for (const clip of clips) {
     await page.getByLabel(`Label for ${clip.filename}`, { exact: true }).fill(clip.metadata.label)
     await page.getByLabel(`Recorded by for ${clip.filename}`, { exact: true }).fill(clip.metadata.recorded_by)
     await page.getByLabel(`Location for ${clip.filename}`, { exact: true }).fill(clip.metadata.location)
+    await dialog.getByRole('button', { name: 'Use a time description', exact: true }).click()
     await page.getByLabel(`Recording time for ${clip.filename}`, { exact: true }).fill(clip.metadata.recorded_at)
     await page.getByLabel(`Notes for ${clip.filename}`, { exact: true }).fill(clip.metadata.notes)
     await page.getByRole('button', { name: 'Create case with 1 file', exact: true }).click()

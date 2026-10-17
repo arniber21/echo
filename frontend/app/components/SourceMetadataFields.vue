@@ -22,20 +22,10 @@ const metadata = defineModel<SourceMetadata>({ required: true })
         :maxlength="160"
     /></UFormField>
     <UFormField label="Location (reported)" hint="Optional"
-      ><UInput
-        v-model="metadata.location"
-        :aria-label="sourceName ? `Location for ${sourceName}` : 'Location (reported)'"
-        class="w-full"
-        placeholder="e.g. Main St & 3rd Ave"
-        :maxlength="240"
+      ><LocationPicker v-model="metadata.location" :source-name="sourceName"
     /></UFormField>
     <UFormField label="Recording time (reported)" hint="Optional"
-      ><UInput
-        v-model="metadata.recorded_at"
-        :aria-label="sourceName ? `Recording time for ${sourceName}` : 'Recording time (reported)'"
-        class="w-full"
-        placeholder="e.g. Oct 17, approximately 2:30 pm PDT"
-        :maxlength="160"
+      ><RecordingTimeInputs v-model="metadata.recorded_at" :source-name="sourceName"
     /></UFormField>
     <p class="metadata-time-hint">
       Recording time and location are your reported context, not verified timestamps or EXIF data.

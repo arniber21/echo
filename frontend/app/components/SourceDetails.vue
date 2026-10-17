@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import type { MediaFile } from '../types/generated'
+import { parseRecordingTime } from '../utils/recordingTime'
 const props = defineProps<{ source: MediaFile; editable: boolean; busy: boolean }>()
 const emit = defineEmits<{ edit: [source: MediaFile] }>()
 const hasDetails = computed(() =>
   Object.values(props.source.metadata).some((value) => value.trim().length > 0),
 )
+const recordingTime = computed(() => {
+  const value = props.source.metadata.recorded_at
+  const parsed = parseRecordingTime(value)
+  return parsed?.date && parsed.time ? `${parsed.date} ${parsed.time} (local time)` : value
+})
 </script>
 <template>
   <section class="source-details" aria-label="Source details">
@@ -32,7 +38,7 @@ const hasDetails = computed(() =>
         <dd>{{ source.metadata.location }}</dd></template
       ><template v-if="source.metadata.recorded_at"
         ><dt>Recording time (reported)</dt>
-        <dd>{{ source.metadata.recorded_at }}</dd></template
+        <dd>{{ recordingTime }}</dd></template
       ><template v-if="source.metadata.notes"
         ><dt>Notes / context</dt>
         <dd>{{ source.metadata.notes }}</dd></template
