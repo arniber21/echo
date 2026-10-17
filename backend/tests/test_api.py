@@ -253,9 +253,13 @@ def test_operator_mock_mode_prevents_live_requests(
         return Analysis(events=[], summary=[], mode="mock")
 
     monkeypatch.setattr("rewind.analysis.analyze", capture_analysis)
-    app = create_app(settings(
-        tmp_path, analysis_mode=configured_mode, gemini_api_key="configured-test-key"
-    ))
+    app = create_app(
+        settings(
+            tmp_path,
+            analysis_mode=configured_mode,
+            gemini_api_key="configured-test-key",
+        )
+    )
     with TestClient(app) as client:
         started = client.post("/api/cases/demo/analyze", json={"mode": requested_mode})
         assert started.status_code == 202
@@ -270,3 +274,165 @@ def test_operator_mock_mode_prevents_live_requests(
 
         assert client.portal.call(wait_for_job).status == "completed"
     assert received_modes == [expected_mode]
+
+
+def finish_job(client, app, case_id):
+    job = client.post(f"/api/cases/{case_id}/analyze", json={"mode": "mock"}).json()
+
+    async def wait():
+        for _ in range(100):
+            current = app.state.store.get_job(job["job_id"])
+            if current.status in ("failed", "completed"):
+                return current
+            await asyncio.sleep(0.01)
+        pytest.fail("Analysis did not finish")
+
+    completed = client.portal.call(wait)
+    assert completed.status == "completed", completed.error
+    return client.get(f"/api/cases/{case_id}").json()
+
+
+def test_incremental_video_then_photo_preserves_history_and_restart(tmp_path):
+    import shutil
+    import subprocess
+
+    if shutil.which("ffmpeg") is None:
+        pytest.skip("FFmpeg is supplied by devbox")
+    video = tmp_path / "initial.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=black:size=64x64:rate=5",
+            "-t",
+            "2",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(video),
+        ],
+        check=True,
+        timeout=20,
+    )
+    config = settings(tmp_path / "data", analysis_mode="mock")
+    app = create_app(config)
+    with TestClient(app) as client:
+        initial = client.post(
+            "/api/cases", files=[("files", ("initial.mp4", video.read_bytes()))]
+        ).json()
+        case_id = initial["case_id"]
+        first = finish_job(client, app, case_id)
+        assert first["evidence_revision"] == first["analyzed_revision"] == 1
+        assert len(first["analysis"]["events"]) == 1
+        original_ids = first["analyzed_source_ids"]
+        appended = client.post(
+            f"/api/cases/{case_id}/media",
+            files=[("files", ("later-photo.jpg", jpeg()))],
+        )
+        assert appended.status_code == 200
+        stale = appended.json()
+        assert stale["evidence_revision"] == 2
+        assert stale["analyzed_revision"] == 1
+        assert stale["analysis"] == first["analysis"]
+        assert stale["analyzed_source_ids"] == original_ids
+        assert stale["analysis_history"] == []
+        second = finish_job(client, app, case_id)
+        assert second["analyzed_revision"] == 2
+        assert len(second["analysis"]["events"]) == 2
+        assert len(second["analyzed_source_ids"]) == 2
+        snapshot = second["analysis_history"][0]
+        assert snapshot["revision"] == 1
+        assert snapshot["media_count"] == 1
+        assert snapshot["media_source_ids"] == original_ids
+        assert snapshot["analysis"] == first["analysis"]
+        assert snapshot["created_at"] == first["analyzed_at"]
+        repeated = finish_job(client, app, case_id)
+        assert repeated["analysis_history"] == second["analysis_history"]
+    with TestClient(create_app(config)) as client:
+        restored = client.get(f"/api/cases/{case_id}").json()
+        assert restored == repeated
+        for media in restored["media_files"]:
+            assert client.get(media["url"]).status_code == 200
+
+
+def test_failed_append_rolls_back_only_new_batch(tmp_path):
+    with TestClient(create_app(settings(tmp_path))) as client:
+        first = client.post(
+            "/api/cases", files=[("files", ("original.jpg", jpeg()))]
+        ).json()
+        case_id = first["case_id"]
+        response = client.post(
+            f"/api/cases/{case_id}/media",
+            files=[("files", ("new.jpg", jpeg())), ("files", ("fake.mp4", b"invalid"))],
+        )
+        assert response.status_code == 415
+        assert client.get(f"/api/cases/{case_id}").json() == first
+        assert client.get(first["media_files"][0]["url"]).content == jpeg()
+        directory = tmp_path / "media" / case_id
+        assert len(list(directory.iterdir())) == 1
+
+
+def test_append_rejected_while_job_active_and_demo_is_readonly(tmp_path):
+    from threading import Event as ThreadEvent
+
+    entered, release = ThreadEvent(), ThreadEvent()
+
+    async def analyze(case, paths, progress):
+        entered.set()
+        while not release.is_set():
+            await asyncio.sleep(0.01)
+        return Analysis(events=[], summary=[], mode="mock")
+
+    app = create_app(settings(tmp_path), analyze)
+    with TestClient(app) as client:
+        case = client.post("/api/cases", files=[("files", ("a.jpg", jpeg()))]).json()
+        client.post(f"/api/cases/{case['case_id']}/analyze")
+        assert entered.wait(timeout=2)
+        response = client.post(
+            f"/api/cases/{case['case_id']}/media", files=[("files", ("b.jpg", jpeg()))]
+        )
+        assert response.status_code == 409
+        assert client.get(f"/api/cases/{case['case_id']}").json() == case
+        release.set()
+        assert (
+            client.post(
+                "/api/cases/demo/media", files=[("files", ("a.jpg", jpeg()))]
+            ).status_code
+            == 409
+        )
+        demo = client.get("/api/cases/demo").json()
+        assert demo["analyzed_revision"] == demo["evidence_revision"] == 1
+        assert len(demo["analyzed_source_ids"]) == len(demo["media_files"])
+
+
+def test_concurrent_appends_do_not_lose_evidence(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    with TestClient(create_app(settings(tmp_path))) as client:
+        case = client.post(
+            "/api/cases", files=[("files", ("original.jpg", jpeg()))]
+        ).json()
+        case_id = case["case_id"]
+
+        def append(index):
+            return client.post(
+                f"/api/cases/{case_id}/media",
+                files=[("files", (f"photo-{index}.jpg", jpeg()))],
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            responses = list(pool.map(append, range(2)))
+        assert all(response.status_code == 200 for response in responses)
+        combined = client.get(f"/api/cases/{case_id}").json()
+        assert combined["evidence_revision"] == 3
+        assert len(combined["media_files"]) == 3
+        assert {item["filename"] for item in combined["media_files"]} == {
+            "original.jpg",
+            "photo-0.jpg",
+            "photo-1.jpg",
+        }

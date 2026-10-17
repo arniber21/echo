@@ -239,5 +239,15 @@
     ],
     "mode": "demo",
     "notice": "Synthetic demonstration: staged media and prewritten analysis. All claims remain unverified; this is not evidence of a real incident."
-  }
+  },
+  "evidence_revision": 1,
+  "analyzed_revision": 1,
+  "analyzed_at": "2026-10-17T12:00:00Z",
+  "analyzed_source_ids": [
+    "demo-video",
+    "demo-audio",
+    "demo-photo-front",
+    "demo-photo-side"
+  ],
+  "analysis_history": []
 }

@@ -106,6 +106,7 @@ class AnalysisRevision(Contract):
     revision: int = Field(ge=1)
     created_at: datetime
     media_source_ids: list[str]
+    media_count: int = Field(ge=0)
     analysis: Analysis
 
 

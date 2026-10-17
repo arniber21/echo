@@ -17,9 +17,16 @@ from fastapi.responses import FileResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from rewind.config import ROOT, Settings
-from rewind.models import Analysis, AnalyzeRequest, Case, Job, validate_analysis
+from rewind.models import (
+    Analysis,
+    AnalysisRevision,
+    AnalyzeRequest,
+    Case,
+    Job,
+    validate_analysis,
+)
 from rewind.storage import Store
-from rewind.uploads import ingest
+from rewind.uploads import ingest_batch
 
 logger = logging.getLogger(__name__)
 Progress = Callable[[str, int], Awaitable[None]]
@@ -62,6 +69,9 @@ def seed_demo(store: Store):
     if not fixture.exists():
         return
     case = Case.model_validate_json(fixture.read_text())
+    case.analyzed_revision = case.evidence_revision
+    case.analyzed_at = case.created_at
+    case.analyzed_source_ids = [item.source_id for item in case.media_files]
     paths = {}
     for media in case.media_files:
         path = ROOT / "demo/media" / media.filename
@@ -81,6 +91,10 @@ def create_app(
     seed_demo(store)
     tasks: set[asyncio.Task] = set()
     analysis_lock = asyncio.Lock()
+    case_locks: dict[str, asyncio.Lock] = {}
+
+    def case_lock(case_id: str) -> asyncio.Lock:
+        return case_locks.setdefault(case_id, asyncio.Lock())
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -126,21 +140,10 @@ def create_app(
         files: Annotated[list[UploadFile], File()],
         title: Annotated[str, Form(max_length=160)] = "Untitled reconstruction",
     ):
-        if not files or len(files) > config.max_files:
-            raise HTTPException(422, f"Upload between 1 and {config.max_files} files.")
         case_id = uuid4().hex
         directory = config.data_dir / "media" / case_id
-        directory.mkdir(parents=True)
-        media, paths = [], {}
-        total = 0
+        media, paths = await ingest_batch(files, directory, config)
         try:
-            for file in files:
-                item, path = await ingest(file, directory, config)
-                total += item.size_bytes
-                if total > config.max_request_bytes:
-                    raise HTTPException(413, "Upload exceeds the total request limit.")
-                media.append(item)
-                paths[item.source_id] = path
             case = Case(
                 case_id=case_id,
                 title=title.strip() or "Untitled reconstruction",
@@ -152,9 +155,36 @@ def create_app(
         except BaseException:
             shutil.rmtree(directory, ignore_errors=True)
             raise
-        finally:
-            for file in files:
-                await file.close()
+
+    @app.post("/api/cases/{case_id}/media", response_model=Case)
+    async def append_media(case_id: str, files: Annotated[list[UploadFile], File()]):
+        require_case(case_id)
+        async with case_lock(case_id):
+            try:
+                if case_id == "demo":
+                    raise HTTPException(
+                        409,
+                        "The synthetic demo is read-only. Start a new reconstruction to add evidence.",
+                    )
+                if store.active_job(case_id):
+                    raise HTTPException(
+                        409,
+                        "Analysis is running. Wait for it to finish before adding evidence.",
+                    )
+                directory = config.data_dir / "media" / case_id / uuid4().hex
+                media, paths = await ingest_batch(files, directory, config)
+                try:
+                    case = require_case(case_id)
+                    case.media_files.extend(media)
+                    case.evidence_revision += 1
+                    store.save_case(case, paths)
+                    return case
+                except BaseException:
+                    shutil.rmtree(directory, ignore_errors=True)
+                    raise
+            finally:
+                for file in files:
+                    await file.close()
 
     async def run_analysis(job: Job, case: Case, mode: str):
         async def progress(stage: str, percent: int):
@@ -190,17 +220,46 @@ def create_app(
                         ),
                     )
                 validate_analysis(analysis, case.media_files)
-                case.analysis = analysis
-                store.save_case(case)
-                store.save_job(
-                    job.model_copy(
-                        update={
-                            "status": "completed",
-                            "stage": "completed",
-                            "progress": 100,
-                        }
+                async with case_lock(case.case_id):
+                    current = require_case(case.case_id)
+                    if current.evidence_revision != case.evidence_revision:
+                        raise ValueError(
+                            "Evidence changed during analysis; retry on the latest revision"
+                        )
+                    if (
+                        current.analysis is not None
+                        and current.analyzed_revision is not None
+                        and current.analyzed_revision != current.evidence_revision
+                        and not any(
+                            snapshot.revision == current.analyzed_revision
+                            for snapshot in current.analysis_history
+                        )
+                    ):
+                        current.analysis_history.append(
+                            AnalysisRevision(
+                                revision=current.analyzed_revision,
+                                created_at=current.analyzed_at or current.created_at,
+                                media_count=len(current.analyzed_source_ids),
+                                media_source_ids=current.analyzed_source_ids.copy(),
+                                analysis=current.analysis,
+                            )
+                        )
+                    current.analysis = analysis
+                    current.analyzed_revision = current.evidence_revision
+                    current.analyzed_at = datetime.now(UTC)
+                    current.analyzed_source_ids = [
+                        item.source_id for item in current.media_files
+                    ]
+                    store.save_case(current)
+                    store.save_job(
+                        job.model_copy(
+                            update={
+                                "status": "completed",
+                                "stage": "completed",
+                                "progress": 100,
+                            }
+                        )
                     )
-                )
         except asyncio.CancelledError:
             store.save_job(
                 job.model_copy(
@@ -227,31 +286,31 @@ def create_app(
 
     @app.post("/api/cases/{case_id}/analyze", response_model=Job, status_code=202)
     async def start_analysis(case_id: str, request: AnalyzeRequest | None = None):
-        case = require_case(case_id)
-        existing = store.active_job(case_id)
-        if existing:
-            return existing
-        job = Job(
-            job_id=uuid4().hex,
-            case_id=case_id,
-            status="queued",
-            stage="uploading",
-            progress=0,
-        )
-        store.save_job(job)
-        requested_mode = request.mode if request else "auto"
-        # An operator-forced offline session must never transfer evidence to Gemini.
-        effective_mode = requested_mode
-        if config.analysis_mode == "mock":
-            effective_mode = "mock"
-        elif requested_mode == "auto":
-            effective_mode = config.analysis_mode
-        task = asyncio.create_task(
-            run_analysis(job, case, effective_mode)
-        )
-        tasks.add(task)
-        task.add_done_callback(tasks.discard)
-        return job
+        require_case(case_id)
+        async with case_lock(case_id):
+            case = require_case(case_id)
+            existing = store.active_job(case_id)
+            if existing:
+                return existing
+            job = Job(
+                job_id=uuid4().hex,
+                case_id=case_id,
+                status="queued",
+                stage="uploading",
+                progress=0,
+            )
+            store.save_job(job)
+            requested_mode = request.mode if request else "auto"
+            # An operator-forced offline session must never transfer evidence to Gemini.
+            effective_mode = requested_mode
+            if config.analysis_mode == "mock":
+                effective_mode = "mock"
+            elif requested_mode == "auto":
+                effective_mode = config.analysis_mode
+            task = asyncio.create_task(run_analysis(job, case, effective_mode))
+            tasks.add(task)
+            task.add_done_callback(tasks.discard)
+            return job
 
     @app.get("/api/jobs/{job_id}", response_model=Job)
     async def get_job(job_id: str):

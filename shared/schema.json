@@ -84,6 +84,11 @@
           "title": "Media Source Ids",
           "type": "array"
         },
+        "media_count": {
+          "minimum": 0,
+          "title": "Media Count",
+          "type": "integer"
+        },
         "analysis": {
           "$ref": "#/$defs/Analysis"
         }
@@ -92,6 +97,7 @@
         "revision",
         "created_at",
         "media_source_ids",
+        "media_count",
         "analysis"
       ],
       "title": "AnalysisRevision",

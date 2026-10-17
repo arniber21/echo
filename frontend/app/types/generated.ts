@@ -13,6 +13,7 @@ export interface AnalysisRevision {
   revision: number
   created_at: string
   media_source_ids: Array<string>
+  media_count: number
   analysis: Analysis
 }
 

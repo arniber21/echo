@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
@@ -159,3 +160,32 @@ async def ingest(
         raise
     finally:
         await file.close()
+
+
+async def ingest_batch(
+    files: list[UploadFile], directory: Path, settings: Settings
+) -> tuple[list[MediaFile], dict[str, Path]]:
+    """All-or-nothing batch staging shared by initial and incremental uploads."""
+    if not files or len(files) > settings.max_files:
+        for file in files:
+            await file.close()
+        raise HTTPException(422, f"Upload between 1 and {settings.max_files} files.")
+    directory.mkdir(parents=True)
+    media: list[MediaFile] = []
+    paths: dict[str, Path] = {}
+    total = 0
+    try:
+        for file in files:
+            item, path = await ingest(file, directory, settings)
+            total += item.size_bytes
+            if total > settings.max_request_bytes:
+                raise HTTPException(413, "Upload exceeds the total request limit.")
+            media.append(item)
+            paths[item.source_id] = path
+        return media, paths
+    except BaseException:
+        shutil.rmtree(directory, ignore_errors=True)
+        raise
+    finally:
+        for file in files:
+            await file.close()
