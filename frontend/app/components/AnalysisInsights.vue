@@ -1,8 +1,20 @@
 <script setup lang="ts">
-import type { Analysis, MediaFile, SourceRef } from '../types/generated'
+import type { Analysis, CaseAnswer, MediaFile, SourceRef } from '../types/generated'
 import type { TabsItem } from '@nuxt/ui'
-const props = defineProps<{ analysis: Analysis; media: MediaFile[] }>()
-const emit = defineEmits<{ select: [reference: SourceRef] }>()
+import type { AnswerSubmission } from '../utils/answers'
+const props = defineProps<{
+  analysis: Analysis
+  media: MediaFile[]
+  answers: CaseAnswer[]
+  citationAnswers: CaseAnswer[]
+  questionRevision: number | null
+  readonly: boolean
+  busy: boolean
+}>()
+const emit = defineEmits<{
+  select: [reference: SourceRef]
+  saveAnswer: [submission: AnswerSubmission]
+}>()
 const tab = ref('summary')
 const tabs = computed<TabsItem[]>(() => [
   { value: 'summary', label: 'Case summary' },
@@ -42,6 +54,7 @@ watch(
               :media="media"
               @select="emit('select', $event)"
             />
+            <AnswerReferences :references="claim.answer_refs" :answers="citationAnswers" />
           </div></article></template
       ><template v-else-if="tab === 'gaps'"
         ><h2 class="insight-heading">Missing evidence</h2>
@@ -54,6 +67,22 @@ watch(
               :references="gap.source_refs"
               :media="media"
               @select="emit('select', $event)"
+            />
+            <AnswerReferences :references="gap.answer_refs" :answers="citationAnswers" />
+            <AnswerQuestion
+              v-if="questionRevision !== null"
+              :question-id="gap.id"
+              :question-title="gap.title"
+              :question-revision="questionRevision"
+              :answer="
+                answers.find(
+                  (answer) =>
+                    answer.question_id === gap.id && answer.question_revision === questionRevision,
+                )
+              "
+              :readonly="readonly"
+              :busy="busy"
+              @save="emit('saveAnswer', $event)"
             />
           </div>
         </article>
@@ -76,6 +105,7 @@ watch(
               :media="media"
               @select="emit('select', $event)"
             />
+            <AnswerReferences :references="conflict.answer_refs" :answers="citationAnswers" />
           </div>
         </article>
       </template>

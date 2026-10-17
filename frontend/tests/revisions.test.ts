@@ -51,6 +51,8 @@ function incident(): Case {
     analyzed_source_ids: ['video'],
     analyzed_media_files: [video],
     analysis_history: [],
+    answers: [],
+    analyzed_answers: [],
     memory: null,
     intelligence: null,
     preview: null,
@@ -78,6 +80,7 @@ describe('progressive reconstruction', () => {
         media_files: [video],
         analysis,
         intelligence: null,
+        answers: [],
       },
     ]
     const view = reconstructionView(value, 1)
@@ -97,6 +100,7 @@ describe('progressive reconstruction', () => {
         media_files: [video],
         analysis,
         intelligence: null,
+        answers: [],
       },
     ]
     expect(reconstructionDelta(value)).toEqual({
@@ -137,6 +141,7 @@ test('previous snapshots retain the original source annotations', () => {
       media_files: [video],
       analysis,
       intelligence: null,
+      answers: [],
     },
   ]
   expect(reconstructionView(value, 1).media[0]?.metadata.location).toBe('')
@@ -156,6 +161,7 @@ const signals: EvidenceIntelligence = {
   status: 'complete',
   sources: [],
   claims: [],
+  video_relationships: [],
   input_tokens: 10,
   elapsed_seconds: 1,
   diagnostics: [],
@@ -173,6 +179,7 @@ test('historical evidence signals never fall back to the current reconstruction'
       media_files: [video],
       analysis,
       intelligence: null,
+      answers: [],
     },
   ]
   expect(reconstructionView(value, null).intelligence).toBe(signals)
@@ -202,6 +209,7 @@ test('a quick scan fills an empty current view without replacing accepted analys
       media_files: [video],
       analysis,
       intelligence: null,
+      answers: [],
     },
   ]
   expect(reconstructionView(value, 1).intelligence).toBeNull()
@@ -213,4 +221,39 @@ test('a quick scan fills an empty current view without replacing accepted analys
   value.evidence_revision += 1
   expect(reconstructionView(value, null).analysis).toBeNull()
   expect(reconstructionView(value, null).quickScan).toBe(false)
+})
+
+test('answer citations use accepted values while current responses can change', () => {
+  const value = incident()
+  const accepted = {
+    answer_id: 'answer-1',
+    question_id: 'question-1',
+    question_title: 'Clock',
+    question_text: 'Is the clock accurate?',
+    question_revision: 1,
+    text: 'Two minutes slow',
+    respondent: 'Driver',
+    created_at: value.created_at,
+    updated_at: value.created_at,
+  }
+  value.analyzed_answers = [accepted]
+  value.answers = [{ ...accepted, text: 'Three minutes slow' }]
+  const view = reconstructionView(value, null)
+  expect(view.answers[0]?.text).toBe('Three minutes slow')
+  expect(view.citationAnswers[0]?.text).toBe('Two minutes slow')
+  value.analysis_history = [
+    {
+      revision: 1,
+      created_at: value.created_at,
+      media_source_ids: ['video'],
+      media_count: 1,
+      media_files: [video],
+      analysis,
+      answers: [accepted],
+      intelligence: null,
+    },
+  ]
+  const historical = reconstructionView(value, 1)
+  expect(historical.answers).toEqual([accepted])
+  expect(historical.citationAnswers).toEqual([accepted])
 })

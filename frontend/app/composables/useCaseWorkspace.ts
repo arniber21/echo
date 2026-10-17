@@ -1,4 +1,5 @@
 import type { Case, Job, SourceMetadata } from '../types/generated'
+import type { AnswerSubmission } from '../utils/answers'
 
 export function useCaseWorkspace() {
   const currentCase = shallowRef<Case | null>(null)
@@ -86,6 +87,35 @@ export function useCaseWorkspace() {
     })
   }
 
+  async function saveAnswer(submission: AnswerSubmission) {
+    if (!currentCase.value) return
+    const incident = currentCase.value
+    const path = `/api/cases/${encodeURIComponent(incident.case_id)}/answers`
+    job.value = null
+    await run(async (signal) => {
+      const body = {
+        text: submission.text,
+        respondent: submission.respondent,
+        expected_evidence_revision: incident.evidence_revision,
+      }
+      currentCase.value = submission.answerId
+        ? await $fetch<Case>(`${path}/${encodeURIComponent(submission.answerId)}`, {
+            method: 'PATCH',
+            body,
+            signal,
+          })
+        : await $fetch<Case>(path, {
+            method: 'POST',
+            body: {
+              ...body,
+              question_id: submission.questionId,
+              question_revision: submission.questionRevision,
+            },
+            signal,
+          })
+    })
+  }
+
   async function analyze(mode: 'auto' | 'mock' | 'live') {
     if (!currentCase.value) return
     const caseId = currentCase.value.case_id
@@ -134,6 +164,7 @@ export function useCaseWorkspace() {
     upload,
     appendEvidence,
     saveSourceMetadata,
+    saveAnswer,
     analyze,
   }
 }

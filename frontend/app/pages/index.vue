@@ -4,8 +4,18 @@ import type UploadCase from '../components/UploadCase.vue'
 import type EvidenceMetadata from '../components/EvidenceMetadata.vue'
 import { eventSourceReference, formatTime, placementLabel } from '../utils/timeline'
 import { currentPreview } from '../utils/revisions'
-const { currentCase, job, busy, error, load, upload, appendEvidence, saveSourceMetadata, analyze } =
-  useCaseWorkspace()
+const {
+  currentCase,
+  job,
+  busy,
+  error,
+  load,
+  upload,
+  appendEvidence,
+  saveSourceMetadata,
+  saveAnswer,
+  analyze,
+} = useCaseWorkspace()
 const { selectedRevision, view, displayedAnalysis, media, needsUpdate } =
   useReconstructionHistory(currentCase)
 const preview = computed(() =>
@@ -213,6 +223,7 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
       <WorkingAccount
         v-if="currentCase?.memory && selectedRevision === null"
         :memory="currentCase.memory"
+        :answers="currentCase.analyzed_answers"
         :media="media"
         :pending="currentCase.memory.revision !== currentCase.evidence_revision"
         @select="selectReference"
@@ -267,9 +278,16 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
             @select="selectEvent"
           /><AnalysisInsights
             v-if="displayedAnalysis"
+            :key="currentCase.case_id"
             :analysis="displayedAnalysis"
             :media="media"
+            :answers="view?.answers ?? []"
+            :citation-answers="view?.citationAnswers ?? []"
+            :question-revision="view?.revision ?? null"
+            :readonly="selectedRevision !== null || Boolean(view?.quickScan)"
+            :busy="busy"
             @select="selectReference"
+            @save-answer="saveAnswer"
           />
           <div v-else class="empty-analysis">
             <UIcon name="i-lucide-sparkles" />
@@ -279,6 +297,13 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
               uncertain.
             </p>
           </div>
+          <CaseResponses
+            :key="`responses-${currentCase.case_id}-${selectedRevision ?? 'current'}`"
+            :answers="view?.answers ?? []"
+            :readonly="selectedRevision !== null"
+            :busy="busy"
+            @save="saveAnswer"
+          />
           <EvidenceSignals
             v-if="view?.intelligence"
             :intelligence="view.intelligence"

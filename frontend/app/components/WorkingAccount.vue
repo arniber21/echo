@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import type { CaseMemory, MediaFile, MemoryEntry, SourceRef } from '../types/generated'
+import type { CaseAnswer, CaseMemory, MediaFile, MemoryEntry, SourceRef } from '../types/generated'
 
-const props = defineProps<{ memory: CaseMemory; media: MediaFile[]; pending: boolean }>()
+const props = defineProps<{
+  memory: CaseMemory
+  media: MediaFile[]
+  answers: CaseAnswer[]
+  pending: boolean
+}>()
 const emit = defineEmits<{ select: [reference: SourceRef] }>()
 const active = computed(() => props.memory.entries.filter((entry) => entry.status === 'active'))
 const summaries = computed(() =>
@@ -41,6 +46,7 @@ const savedAt = computed(() => new Date(props.memory.updated_at).toLocaleString(
         :media="media"
         @select="emit('select', $event)"
       />
+      <AnswerReferences :references="entry.answer_refs" :answers="answers" />
     </article>
     <p v-if="!summaries.length" class="account-empty">
       No source-supported summary has been committed for this revision.
@@ -65,6 +71,7 @@ const savedAt = computed(() => new Date(props.memory.updated_at).toLocaleString(
             :media="media"
             @select="emit('select', $event)"
           />
+          <AnswerReferences :references="entry.answer_refs" :answers="answers" />
         </article>
       </div>
       <details v-if="previous.length" class="account-prior">
@@ -91,10 +98,10 @@ const savedAt = computed(() => new Date(props.memory.updated_at).toLocaleString(
   min-width: 0;
   margin: 22px 0;
   padding: 22px;
-  border: 1px solid #d9dfcf;
+  border: 1px solid var(--app-border, #d2d2d7);
   border-radius: 12px;
-  background: #fffefb;
-  color: #30372d;
+  background: var(--app-surface, #fff);
+  color: var(--app-text, #1d1d1f);
 }
 .account-heading {
   display: flex;
@@ -113,7 +120,7 @@ h2 {
 small {
   font-size: 12px;
   line-height: 1.6;
-  color: #606957;
+  color: var(--app-secondary, #6e6e73);
 }
 .account-claim {
   margin-top: 15px;
@@ -125,8 +132,8 @@ small {
   margin-bottom: 8px;
 }
 .account-pending {
-  background: #fff6df;
-  color: #79551a;
+  background: var(--app-subtle, #f5f5f7);
+  color: var(--app-secondary, #6e6e73);
   padding: 10px 12px;
   border-radius: 7px;
   margin-top: 14px;
@@ -134,7 +141,7 @@ small {
 .account-details,
 .account-data {
   margin-top: 18px;
-  border-top: 1px solid #e5e8df;
+  border-top: 1px solid var(--app-border, #d2d2d7);
   padding-top: 13px;
 }
 summary {
@@ -146,7 +153,7 @@ summary span {
   font-size: 12px;
   font-weight: 400;
   margin-left: 8px;
-  color: #606957;
+  color: var(--app-secondary, #6e6e73);
 }
 .account-group {
   margin-top: 20px;
@@ -163,7 +170,7 @@ summary span {
 .account-prior {
   margin-top: 20px;
   padding: 14px;
-  border: 1px dashed #cfd5c5;
+  border: 1px dashed var(--app-border, #d2d2d7);
   border-radius: 8px;
 }
 pre {
@@ -172,7 +179,7 @@ pre {
   margin-top: 12px;
   padding: 14px;
   font-size: 12px;
-  background: #f1f3ed;
+  background: var(--app-subtle, #f5f5f7);
   border-radius: 8px;
 }
 .account-storage {

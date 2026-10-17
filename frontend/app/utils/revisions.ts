@@ -2,6 +2,7 @@ import type {
   Analysis,
   AnalysisRevision,
   Case,
+  CaseAnswer,
   EvidenceIntelligence,
   MediaFile,
 } from '../types/generated'
@@ -12,6 +13,8 @@ export interface ReconstructionView {
   revision: number | null
   sourceIds: string[]
   media: MediaFile[]
+  answers: CaseAnswer[]
+  citationAnswers: CaseAnswer[]
   historical: boolean
   quickScan: boolean
 }
@@ -51,6 +54,8 @@ export function reconstructionView(
           : incident.media_files.filter((source) =>
               snapshot.media_source_ids.includes(source.source_id),
             ),
+        answers: snapshot.answers,
+        citationAnswers: snapshot.answers,
         historical: true,
         quickScan: false,
       }
@@ -66,6 +71,8 @@ export function reconstructionView(
             ? incident.media_files.map((source) => source.source_id)
             : incident.analyzed_source_ids,
         media: incident.media_files,
+        answers: incident.answers,
+        citationAnswers: incident.analyzed_answers,
         historical: false,
         quickScan: !incident.analysis && Boolean(preview),
       }

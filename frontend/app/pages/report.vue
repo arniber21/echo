@@ -71,7 +71,7 @@ function printReport() {
         <p v-if="!incident.analysis">Analysis has not been completed.</p>
         <div v-for="(claim, index) in incident.analysis?.summary" :key="index" class="report-claim">
           <p>{{ claim.text }}</p>
-          <small
+          <small v-if="claim.source_refs.length"
             >Sources:
             {{
               claim.source_refs
@@ -79,8 +79,10 @@ function printReport() {
                 .join('; ')
             }}</small
           >
+          <AnswerReferences :references="claim.answer_refs" :answers="incident.analyzed_answers" />
         </div>
       </section>
+      <CaseResponses :answers="incident.answers" readonly />
       <section>
         <h2>Evidence inventory</h2>
         <table>
@@ -190,6 +192,7 @@ function printReport() {
                 .join('; ') || 'No specific source'
             }}</small
           >
+          <AnswerReferences :references="item.answer_refs" :answers="incident.analyzed_answers" />
         </article>
       </section>
     </article>
