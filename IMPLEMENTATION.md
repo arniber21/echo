@@ -11,7 +11,10 @@ place of the original TanStack frontend. Backend is FastAPI/Pydantic/SQLite via 
 - `shared/sample_case.json` is the canonical, explicitly synthetic demo fixture.
 - All API routes use `/api`. Media URLs are relative `/api/media/{id}`.
 - `GET /api/health`, `GET /api/cases`, `GET /api/cases/demo`,
+  `GET /api/workspace` (locally selected default case),
   `POST /api/cases` (multipart `files`, optional `title`),
+  `POST /api/cases/{id}/media` (append multipart evidence),
+  `PATCH /api/cases/{id}/media/{source_id}` (reported source context),
   `GET /api/cases/{id}`, `POST /api/cases/{id}/analyze`,
   `GET /api/jobs/{id}`, `GET /api/media/{id}`.
 - Case has `case_id`, `title`, `created_at`, `media_files`, `analysis` (nullable).
@@ -47,3 +50,26 @@ Backend agent: backend contract, persistence, upload, routes, jobs, backend test
 Frontend agent: Nuxt UI app and frontend unit checks.
 AI agent: provider/extraction/synthesis/cache modules and related tests.
 Root: integration, demo assets, launcher/docs, browser verification, final review.
+
+## Evolving reconstructions and working account
+
+Cases advance `evidence_revision` on each evidence batch. Analysis is committed
+against one revision with the exact analyzed source IDs, timestamp, and prior
+completed reconstruction snapshots. New evidence preserves the old analysis and
+marks it stale. A case lock prevents evidence mutation during analysis.
+
+`Case.memory` is a materialized working account projected from validated analysis
+at commit time. It stores content-addressed summary/observation/testimony/inference/
+question/conflict entries with source references and revision lifetimes. Unchanged
+entries share identity; replaced entries are superseded and retained. Reads and
+uploads do not regenerate memory, and projection does not call the model.
+
+Extraction and synthesis have separate prompt/cache versions. An additional source
+reuses prior file extractions while synthesis considers the complete current set.
+Previous model summaries are never treated as established evidence for synthesis.
+
+Source annotations are typed `SourceMetadata` values: label, recorder, location,
+reported recording time, and notes. Uploads accept an ordered metadata JSON array.
+Edits preserve file hashes and seek clocks, increment the evidence revision, and
+retain prior metadata in completed reconstruction snapshots. Synthesis consumes
+annotations as untrusted reported context; they never replace EXIF or source time.

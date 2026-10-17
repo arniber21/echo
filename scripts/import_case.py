@@ -1,11 +1,11 @@
 """Import local evidence through the same API as the browser, optionally analyze it."""
 
 import argparse
-from contextlib import ExitStack
 import json
 import os
-from pathlib import Path
 import time
+from contextlib import ExitStack
+from pathlib import Path
 
 import httpx
 

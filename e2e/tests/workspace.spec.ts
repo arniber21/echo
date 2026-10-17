@@ -8,12 +8,13 @@ async function openDemo(page: Page): Promise<Case> {
   const demo: Case = await response.json()
   await page.goto('/?case=demo')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(demo.title)
-  await expect(page.getByText('Synthetic demo', { exact: true })).toBeVisible()
+  await expect(page.locator('.analysis-mode-notice')).toContainText('Synthetic demonstration:')
   return demo
 }
 
 async function expectSeek(page: Page, kind: 'video' | 'audio', time: number): Promise<void> {
   await expect.poll(async () => page.locator(kind).evaluate((element: HTMLMediaElement) => element.currentTime)).toBeCloseTo(time, 1)
+  await expect.poll(async () => page.locator(kind).evaluate((element: HTMLMediaElement) => element.readyState >= 2 && !element.seeking)).toBeTruthy()
 }
 
 test('pre-analyzed demo traces events to playable evidence and both sides of a conflict', async ({ page }) => {
@@ -114,7 +115,7 @@ test('evidence accumulates in one case while saved recollection and old timeline
   const initial: Case = await (await page.request.get(`/api/cases/${caseId}`)).json()
   expect(initial.memory?.revision).toBe(1)
   await expect(page.getByRole('region', { name: 'Working account', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Add evidence', exact: true }).click()
+  await page.locator('header').getByRole('button', { name: 'Add footage & files', exact: true }).click()
   await page.getByLabel('Choose evidence files').setInputFiles(fileURLToPath(new URL('../../demo/media/demo-photo-front.jpg', import.meta.url)))
   await page.getByRole('button', { name: 'Add 1 file', exact: true }).click()
   await expect(page.getByText(/1 new source · reconstruction needs update/)).toBeVisible()
@@ -150,4 +151,41 @@ test('the configured real workspace opens its saved reconstruction by default', 
   await page.getByRole('region', { name: 'Unified timeline', exact: true }).getByRole('button', { name: event.title, exact: true }).click()
   await expectSeek(page, 'video', event.source_start)
   await page.screenshot({ path: 'test-results/real-workspace.png', fullPage: true })
+})
+
+test('obvious file intake captures annotations and editing them preserves the original evidence', async ({ page }) => {
+  await openDemo(page)
+  await expect(page.locator('header').getByRole('button', { name: 'Add footage & files', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'New case', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('button', { name: 'Browse files', exact: true })).toBeVisible()
+  await page.getByLabel('Choose evidence files').setInputFiles(fileURLToPath(new URL('../../demo/media/demo-video.mp4', import.meta.url)))
+  await dialog.locator('summary').filter({ hasText: 'demo-video.mp4' }).click()
+  await page.getByLabel('Label for demo-video.mp4', { exact: true }).fill('Front camera')
+  await page.getByLabel('Recorded by for demo-video.mp4', { exact: true }).fill('Driver A')
+  await page.getByLabel('Location for demo-video.mp4', { exact: true }).fill('Main and Third')
+  await page.getByLabel('Recording time for demo-video.mp4', { exact: true }).fill('Approximately 14:30 PDT')
+  await page.getByLabel('Notes for demo-video.mp4', { exact: true }).fill('Original camera recording; time reported by uploader.')
+  await page.getByRole('button', { name: 'Create case with 1 file', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Front camera', exact: true })).toBeVisible()
+  const caseId = new URL(page.url()).searchParams.get('case')
+  if (!caseId) throw new Error('Case URL is missing')
+  await page.getByLabel('Analysis mode').selectOption('mock')
+  await page.getByRole('button', { name: 'Analyze evidence', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Re-analyze', exact: true })).toBeEnabled()
+  const initial: Case = await (await page.request.get(`/api/cases/${caseId}`)).json()
+  const original = initial.media_files[0]!
+  expect(original.metadata.recorded_at).toBe('Approximately 14:30 PDT')
+  expect(original.captured_at).toBeNull()
+  await page.getByRole('region', { name: 'Source details', exact: true }).getByRole('button', { name: 'Edit details', exact: true }).click()
+  await page.getByLabel('Source label', { exact: true }).fill('Front camera · corrected label')
+  await page.getByRole('button', { name: 'Save source details', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Update reconstruction', exact: true })).toBeEnabled()
+  const changed: Case = await (await page.request.get(`/api/cases/${caseId}`)).json()
+  expect(changed.media_files[0]!.source_id).toBe(original.source_id)
+  expect(changed.media_files[0]!.sha256).toBe(original.sha256)
+  expect(changed.media_files[0]!.metadata.label).toBe('Front camera · corrected label')
+  expect(changed.memory).toEqual(initial.memory)
+  expect(changed.evidence_revision).toBe(initial.evidence_revision + 1)
+  expect(changed.analysis).toEqual(initial.analysis)
 })

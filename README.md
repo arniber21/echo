@@ -28,10 +28,52 @@ Devbox pins Python, Node, Bun, uv, just, and FFmpeg. `uv.lock` and `bun.lock` pi
 application dependencies. Tasks also run without entering a shell:
 `devbox run -- just check`.
 
-The home page opens a **synthetic, pre-analyzed demonstration**, including playable
-media and a deliberate contradiction. It works without a Gemini key or network
-access after dependencies have been installed. See [demo/README.md](demo/README.md)
-for what each file depicts.
+The home page opens the locally selected case. The prepared workspace uses a real
+intersection incident cut from the user-provided compilation. Original evidence,
+analysis, history, and the default-case preference live under gitignored `data/`.
+See [local clip provenance](demo/real-footage/local-incident.md) for source offsets.
+
+To prepare and open that case on another machine, run the local splice script with
+your source path, then import its output through the API:
+
+```sh
+uv run --project backend python scripts/prepare_local_incident.py '/path/to/compilation.mp4' --start 123 --duration 16
+uv run --project backend python scripts/import_case.py data/footage/local-intersection/incident.mp4 --title 'Intersection incident' --analyze live --default
+```
+
+Start `just demo` before importing. The original video is never modified. On a
+fresh checkout with no selected real case, a bundled synthetic fixture is available
+as a fallback. It remains explicitly accessible at `/?case=demo` for automated
+tests. See [fixture details](demo/README.md).
+
+## Build a case over time
+
+Use **Add footage & files** in the main menu or evidence library to attach sources
+to the current case. **New case** starts a separate reconstruction. Intake supports
+multiple files, drag and drop, and optional per-file labels, recorder, location,
+reported recording time, and notes. These can also be edited later through
+**Edit details**. Reported context stays separate from file-derived metadata.
+
+Start a new case with one video and analyze it. **Add footage & files** attaches further
+photos, audio, or clips to that same case. The previous reconstruction stays
+visible, explicitly marked as awaiting new evidence, until **Update reconstruction**
+completes. Existing extraction caches are reused; synthesis incorporates the new
+evidence and may revise or contradict earlier findings. Version history restores
+the exact evidence set and analysis of previous completed revisions.
+
+The **Unified timeline** places every source on one case clock, with source lanes,
+uncertainty ranges, and clickable source timestamps. The **Working account** stores
+a structured recollection: summary claims, observations, testimony, inferences,
+questions, and conflicts. It is committed with a successful analysis, never
+regenerated on page loads or uploads. Content-addressed entries reuse unchanged
+text and references; superseded entries remain inspectable. The saved JSON is
+available in the interface. This projection makes no extra model call.
+
+Editing source details advances the evidence revision without modifying source
+bytes or erasing the saved account. Earlier reconstructions retain their exact
+annotations. Context edits invalidate synthesis, while extraction caches for the
+unchanged media remain reusable. User notes are treated as unverified context,
+never as instructions or independently observed facts.
 
 ## Analysis modes
 

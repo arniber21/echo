@@ -156,15 +156,6 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
           </select>
         </div>
       </div>
-      <div v-if="displayedAnalysis?.mode === 'demo'" class="demo-banner">
-        <div>
-          <UIcon name="i-lucide-flask-conical" /><strong>Synthetic demo</strong
-          ><span
-            >Pre-analyzed example evidence. Explore the reconstruction or start a new case.</span
-          >
-        </div>
-        <span class="demo-tag">DEMO WORKSPACE</span>
-      </div>
       <div v-if="displayedAnalysis?.notice" class="analysis-mode-notice">
         <UIcon name="i-lucide-info" />{{ displayedAnalysis.notice }}
       </div>

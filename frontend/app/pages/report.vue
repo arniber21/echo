@@ -97,6 +97,19 @@ function printReport() {
               <td>
                 <strong>{{ file.filename }}</strong
                 ><small>{{ file.source_id }}</small>
+                <small v-if="file.metadata.label">{{ file.metadata.label }}</small>
+                <small v-if="file.metadata.recorded_by"
+                  >Recorded by (reported): {{ file.metadata.recorded_by }}</small
+                >
+                <small v-if="file.metadata.location"
+                  >Location (reported): {{ file.metadata.location }}</small
+                >
+                <small v-if="file.metadata.recorded_at"
+                  >Recording time (reported): {{ file.metadata.recorded_at }}</small
+                >
+                <small v-if="file.metadata.notes"
+                  >Notes (reported): {{ file.metadata.notes }}</small
+                >
               </td>
               <td>{{ file.source_type }}</td>
               <td>
