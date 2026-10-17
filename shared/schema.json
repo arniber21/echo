@@ -699,6 +699,35 @@
       "title": "MemoryEntry",
       "type": "object"
     },
+    "ReconstructionPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_revision": {
+          "minimum": 1,
+          "title": "Evidence Revision",
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "analysis": {
+          "$ref": "#/$defs/Analysis"
+        },
+        "intelligence": {
+          "$ref": "#/$defs/EvidenceIntelligence"
+        }
+      },
+      "required": [
+        "evidence_revision",
+        "created_at",
+        "analysis",
+        "intelligence"
+      ],
+      "title": "ReconstructionPreview",
+      "type": "object"
+    },
     "SourceIntelligence": {
       "additionalProperties": false,
       "properties": {
@@ -911,6 +940,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/CaseMemory"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "preview": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReconstructionPreview"
             },
             {
               "type": "null"

@@ -114,6 +114,13 @@ export interface MemoryEntry {
   status: "active" | "superseded"
 }
 
+export interface ReconstructionPreview {
+  evidence_revision: number
+  created_at: string
+  analysis: Analysis
+  intelligence: EvidenceIntelligence
+}
+
 export interface SourceIntelligence {
   source_id: string
   frames: Array<FrameAssessment>
@@ -149,6 +156,7 @@ export interface Case {
   analyzed_media_files: Array<MediaFile>
   analysis_history: Array<AnalysisRevision>
   memory: CaseMemory | null
+  preview: ReconstructionPreview | null
   intelligence: EvidenceIntelligence | null
 }
 

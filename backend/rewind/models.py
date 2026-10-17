@@ -167,6 +167,13 @@ class AnalysisRevision(Contract):
     intelligence: EvidenceIntelligence | None = None
 
 
+class ReconstructionPreview(Contract):
+    evidence_revision: int = Field(ge=1)
+    created_at: datetime
+    analysis: Analysis
+    intelligence: EvidenceIntelligence
+
+
 class Case(Contract):
     case_id: str
     title: str = Field(min_length=1, max_length=240)
@@ -180,6 +187,7 @@ class Case(Contract):
     analyzed_media_files: list[MediaFile] = Field(default_factory=list)
     analysis_history: list[AnalysisRevision] = Field(default_factory=list)
     memory: CaseMemory | None = None
+    preview: ReconstructionPreview | None = None
     intelligence: EvidenceIntelligence | None = None
 
 
