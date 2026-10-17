@@ -1,0 +1,73 @@
+frontend/app/components/UnifiedTimeline.vue
+  s_4d6956e576b617::t_1f2243cc4d12ff 8,18,22
+backend/rewind/analysis/mock.py
+  s_4d6956e576b617::t_2798d3d5fbb1b3 56
+  s_4d6956e576b617::t_268b9e9b8b239c 7-21
+frontend/app/pages/index.vue
+  s_4d6956e576b617::t_1f2243cc4d12ff 231,289
+backend/rewind/intelligence/preview.py
+  s_4d6956e576b617::t_2798d3d5fbb1b3 98
+  s_4d6956e576b617::t_268b9e9b8b239c 41-48
+docs/video-viewpoints.md
+  s_4d6956e576b617::t_e8ddaf219dafa0 23-25
+backend/rewind/analysis/pipeline.py
+  s_4d6956e576b617::t_bce571c6bb3c5a 300-302
+  s_4d6956e576b617::t_268b9e9b8b239c 96-98
+  s_4d6956e576b617::t_9525c59895f8e6 15,225-231,310
+  s_4d6956e576b617::t_2798d3d5fbb1b3 42-43,94-95,99-101
+  s_4d6956e576b617::t_3ae5132227a0db 8
+backend/rewind/analysis/validation.py
+  s_4d6956e576b617::t_bce571c6bb3c5a 83-89,91-93
+  s_4d6956e576b617::t_268b9e9b8b239c 44-46,134-141
+  s_4d6956e576b617::t_9525c59895f8e6 7,31,76-82,90,99,125,157-167
+  s_4d6956e576b617::t_2798d3d5fbb1b3 43,145
+frontend/app/components/IncidentTimeline.vue
+  s_4d6956e576b617::t_1f2243cc4d12ff 8,16,21
+backend/rewind/analysis/prompts.py
+  s_4d6956e576b617::t_1f2243cc4d12ff 4,74
+  s_4d6956e576b617::t_9525c59895f8e6 97-104,115
+frontend/app/types/generated.ts
+  s_4d6956e576b617::t_a40d7fa0895331 4
+backend/tests/test_analysis_pipeline.py
+  s_4d6956e576b617::t_bce571c6bb3c5a 804,806-828
+  s_4d6956e576b617::t_26df03ecdd511e 805
+  s_4d6956e576b617::t_5f30454b4ca2c4 842-847,851,855-856,875,889-898,904-905
+  s_4d6956e576b617::t_0bd81efd09ce31 848-850,852-854,857-874,876-888,899-903,906-908
+  s_4d6956e576b617::t_f9a2323efed6b8 798-803,829-841
+frontend/tests/revisions.test.ts
+  s_4d6956e576b617::t_2798d3d5fbb1b3 12
+e2e/tests/timeline-unknown.spec.ts
+  s_4d6956e576b617::t_7ae357732c0af3 1-2,5-23,25-122
+backend/rewind/models.py
+  s_4d6956e576b617::t_2798d3d5fbb1b3 121,264-271,275
+  s_4d6956e576b617::t_268b9e9b8b239c 272-274
+frontend/app/utils/timeline.ts
+  s_4d6956e576b617::t_f9a2323efed6b8 40
+  s_4d6956e576b617::t_1f2243cc4d12ff 69-71,89-92,94-96,98-101
+  s_4d6956e576b617::t_b673921cb34f6c 67-68,93,97,102
+README.md
+  s_4d6956e576b617::t_e8ddaf219dafa0 174-178
+frontend/tests/timeline.test.ts
+  s_4d6956e576b617::t_f9a2323efed6b8 5,116-136
+  s_4d6956e576b617::t_b62f88500ff384 137
+shared/schema.json
+  s_4d6956e576b617::t_a40d7fa0895331 7-18
+docs/content-alignment.md
+  s_4d6956e576b617::t_e8ddaf219dafa0 1-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a7723a9d0c59cfc0910de8bae51fdb33cd7b502d",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
