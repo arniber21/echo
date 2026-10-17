@@ -7,6 +7,8 @@ camera viewpoints. Missing results mean unknown alignment, never an offset of ze
 import asyncio
 import hashlib
 import math
+import sys
+from array import array
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -39,6 +41,126 @@ class ContentAlignment:
 class _Frames(BaseModel):
     model_config = ConfigDict(extra="forbid")
     frames: list[str] = Field(max_length=MAX_FRAMES)
+
+
+class _AudioEnvelope(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    energy: list[float] = Field(max_length=3000)
+
+
+async def _decode_audio(path: Path, duration: float) -> list[float]:
+    process = await asyncio.create_subprocess_exec(
+        "ffmpeg",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-i",
+        str(path),
+        "-t",
+        str(min(300, duration)),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "8000",
+        "-f",
+        "s16le",
+        "pipe:1",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    try:
+        raw, _ = await asyncio.wait_for(process.communicate(), timeout=25)
+    except BaseException:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
+        raise
+    if process.returncode or not raw or len(raw) % 2:
+        raise ValueError("Bounded audio decoding failed")
+    samples = array("h")
+    samples.frombytes(raw)
+    if sys.byteorder != "little":
+        samples.byteswap()
+    return [
+        math.sqrt(sum(value * value for value in samples[index : index + 800]) / 800)
+        for index in range(0, len(samples) - 799, 800)
+    ]
+
+
+async def _audio_envelope(
+    source: MediaFile, path: Path, cache: JsonCache
+) -> list[float]:
+    digest = await asyncio.to_thread(_digest, path)
+    key = cache_key(
+        {
+            "version": "audio-content-envelope-v1",
+            "sha256": digest,
+            "duration": source.duration_seconds,
+        }
+    )
+    stored = await asyncio.to_thread(cache.read, key, _AudioEnvelope)
+    if (
+        stored is not None
+        and stored.energy
+        and all(value >= 0 for value in stored.energy)
+    ):
+        return stored.energy
+    energy = await _decode_audio(path, source.duration_seconds or 0)
+    try:
+        await asyncio.to_thread(cache.write, key, _AudioEnvelope(energy=energy))
+    except OSError:
+        pass
+    return energy
+
+
+def _correlation(a: list[float], b: list[float]) -> float:
+    average_a, average_b = sum(a) / len(a), sum(b) / len(b)
+    centered_a = [value - average_a for value in a]
+    centered_b = [value - average_b for value in b]
+    denominator = math.sqrt(
+        sum(value * value for value in centered_a)
+        * sum(value * value for value in centered_b)
+    )
+    return (
+        sum(left * right for left, right in zip(centered_a, centered_b, strict=True))
+        / denominator
+        if denominator > 1e-8
+        else 0
+    )
+
+
+def _match_audio(parent: list[float], child: list[float]) -> ContentAlignment | None:
+    if len(child) < 30 or len(child) > len(parent):
+        return None
+    mean = sum(child) / len(child)
+    deviation = math.sqrt(sum((value - mean) ** 2 for value in child) / len(child))
+    if mean < 1 or deviation / max(mean, 1) < 0.05:
+        return None
+    scores = [
+        (_correlation(parent[offset : offset + len(child)], child), offset)
+        for offset in range(len(parent) - len(child) + 1)
+    ]
+    scores.sort(reverse=True)
+    best, offset = scores[0]
+    if best < 0.985:
+        return None
+    alternatives = [value for value, position in scores if abs(position - offset) > 3]
+    if alternatives and best - max(alternatives) < 0.04:
+        return None
+    # Independent thirds must agree on the same offset, rather than one loud
+    # spike dominating a whole-recording correlation.
+    for third in range(3):
+        start, end = third * len(child) // 3, (third + 1) * len(child) // 3
+        if _correlation(parent[offset + start : offset + end], child[start:end]) < 0.96:
+            return None
+    return ContentAlignment(
+        offset / 10,
+        0.2,
+        min(0.99, best),
+        f"Decoded mono audio-track match: 100ms energy-envelope correlation {best:.6f}, confirmed independently in three separated segments. Sampling uncertainty ±0.2s; silent, flat, repeated and competing offsets are rejected. This matches a recording track, not spoken testimony.",
+    )
 
 
 def _digest(path: Path) -> str:
@@ -222,8 +344,9 @@ async def find_content_alignments(
     """Return supported placements only, bounded to twelve sources and 300s/video.
 
     The longest video anchors the clock. Metadata and filenames are never inputs
-    to matching. Audio, independent views, ambiguous and unsupported images stay
-    absent. Local decoder/cache failures are auxiliary and leave them absent too.
+    to matching. Independent views and ambiguous/unsupported evidence stay absent.
+    Audio is matched only to the parent's actual decoded audio track. Local
+    decoder/cache failures are auxiliary and leave those sources absent too.
     """
     videos = sorted(
         (
@@ -258,19 +381,35 @@ async def find_content_alignments(
             source
             for source in media
             if source.source_id != anchor.source_id
-            and source.source_type in {SourceType.VIDEO, SourceType.PHOTO}
+            and source.source_type
+            in {SourceType.VIDEO, SourceType.PHOTO, SourceType.AUDIO}
         ),
         key=lambda source: (source.sha256, source.source_id),
     )[: MAX_SOURCES - 1]
+    parent_audio = None
+    if any(source.source_type == SourceType.AUDIO for source in candidates):
+        try:
+            parent_audio = await _audio_envelope(anchor, paths[anchor.source_id], cache)
+        except (KeyError, OSError, ValueError, TimeoutError):
+            pass
 
     async def align(source: MediaFile) -> tuple[str, ContentAlignment | None]:
         try:
-            if source.source_type == SourceType.VIDEO and (
+            if source.source_type in {SourceType.VIDEO, SourceType.AUDIO} and (
                 not source.duration_seconds
                 or source.duration_seconds > anchor.duration_seconds
             ):
                 return source.source_id, None
             async with limit:
+                if source.source_type == SourceType.AUDIO:
+                    if parent_audio is None:
+                        return source.source_id, None
+                    child_audio = await _audio_envelope(
+                        source, paths[source.source_id], cache
+                    )
+                    return source.source_id, await asyncio.to_thread(
+                        _match_audio, parent_audio, child_audio
+                    )
                 child = await _frames(source, paths[source.source_id], cache)
                 match = await asyncio.to_thread(
                     _match, parent, child, photo=source.source_type == SourceType.PHOTO

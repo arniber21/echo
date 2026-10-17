@@ -164,3 +164,33 @@ def test_duration_and_source_limits_bound_work(tmp_path, monkeypatch, parent):
         asyncio.run(find_content_alignments([], {}, JsonCache(tmp_path / "cache")))
         == {}
     )
+
+
+def test_audio_matching_accepts_copied_track_and_offset_but_rejects_ambiguity():
+    from rewind.analysis.content_alignment import _match_audio
+
+    generator = random.Random(54)
+    parent = [1000 + generator.random() * 1000 for _ in range(250)]
+    full = _match_audio(parent, [value * 1.15 for value in parent])
+    assert full is not None and full.offset_seconds == 0
+    splice = _match_audio(parent, [value * 1.1 for value in parent[70:160]])
+    assert splice is not None and splice.offset_seconds == 7
+    assert splice.uncertainty_seconds == 0.2
+    assert _match_audio(parent + parent, parent[20:100]) is None
+    assert _match_audio([0] * 250, [0] * 100) is None
+    assert _match_audio([1000] * 250, [1000] * 100) is None
+    assert _match_audio(parent, parent[10:160:2]) is None
+    assert (
+        _match_audio(parent, [1000 + generator.random() * 1000 for _ in range(90)])
+        is None
+    )
+
+
+def test_one_loud_audio_spike_cannot_dominate_three_segment_check():
+    from rewind.analysis.content_alignment import _match_audio
+
+    generator = random.Random(12)
+    parent = [1000 + generator.random() * 100 for _ in range(250)]
+    child = [1000 + generator.random() * 100 for _ in range(250)]
+    parent[120] = child[120] = 100000
+    assert _match_audio(parent, child) is None
