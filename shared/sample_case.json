@@ -1,0 +1,243 @@
+{
+  "case_id": "demo",
+  "title": "Junction contact · synthetic demo",
+  "created_at": "2026-10-17T12:00:00Z",
+  "media_files": [
+    {
+      "source_id": "demo-video",
+      "filename": "demo-video.mp4",
+      "source_type": "video",
+      "mime_type": "video/mp4",
+      "url": "/api/media/demo-video",
+      "sha256": "synthetic-demo",
+      "size_bytes": 0,
+      "duration_seconds": 20.0,
+      "captured_at": null
+    },
+    {
+      "source_id": "demo-audio",
+      "filename": "demo-audio.m4a",
+      "source_type": "audio",
+      "mime_type": "audio/mp4",
+      "url": "/api/media/demo-audio",
+      "sha256": "synthetic-demo",
+      "size_bytes": 0,
+      "duration_seconds": 30.0,
+      "captured_at": null
+    },
+    {
+      "source_id": "demo-photo-front",
+      "filename": "demo-photo-front.jpg",
+      "source_type": "photo",
+      "mime_type": "image/jpeg",
+      "url": "/api/media/demo-photo-front",
+      "sha256": "synthetic-demo",
+      "size_bytes": 0,
+      "duration_seconds": null,
+      "captured_at": null
+    },
+    {
+      "source_id": "demo-photo-side",
+      "filename": "demo-photo-side.jpg",
+      "source_type": "photo",
+      "mime_type": "image/jpeg",
+      "url": "/api/media/demo-photo-side",
+      "sha256": "synthetic-demo",
+      "size_bytes": 0,
+      "duration_seconds": null,
+      "captured_at": null
+    }
+  ],
+  "analysis": {
+    "events": [
+      {
+        "source_id": "demo-video",
+        "source_start": 4.0,
+        "source_end": 8.0,
+        "event_id": "approach",
+        "title": "Vehicle approaches the junction",
+        "description": "The synthetic dashcam sequence shows the vehicle moving toward the junction.",
+        "source_type": "video",
+        "case_min": 5.5,
+        "case_best": 6.0,
+        "case_max": 6.5,
+        "alignment_basis": "Directly timed on the video clock.",
+        "alignment_confidence": 0.88,
+        "confidence": 0.88,
+        "verification_status": "unverified",
+        "evidence_type": "observation",
+        "supports": []
+      },
+      {
+        "source_id": "demo-video",
+        "source_start": 8.0,
+        "source_end": 9.0,
+        "event_id": "impact",
+        "title": "Visible contact in the reconstruction",
+        "description": "The two illustrated vehicles make contact at the junction.",
+        "source_type": "video",
+        "case_min": 7.5,
+        "case_best": 8.0,
+        "case_max": 8.5,
+        "alignment_basis": "Contact is illustrated at video time 8 seconds.",
+        "alignment_confidence": 0.88,
+        "confidence": 0.88,
+        "verification_status": "unverified",
+        "evidence_type": "observation",
+        "supports": []
+      },
+      {
+        "source_id": "demo-audio",
+        "source_start": 11.0,
+        "source_end": 16.0,
+        "event_id": "testimony",
+        "title": "Witness recalls a green signal",
+        "description": "The synthetic voice memo states that the traffic signal was green before contact. This is testimony, not a verified observation.",
+        "source_type": "audio",
+        "case_min": 3.0,
+        "case_best": 6.0,
+        "case_max": 8.0,
+        "alignment_basis": "Statement refers to the period before impact; exact alignment is uncertain.",
+        "alignment_confidence": 0.45,
+        "confidence": 0.88,
+        "verification_status": "unverified",
+        "evidence_type": "testimony",
+        "supports": []
+      },
+      {
+        "source_id": "demo-photo-front",
+        "source_start": null,
+        "source_end": null,
+        "event_id": "front-photo",
+        "title": "Front damage documented",
+        "description": "Illustrative photograph shows front damage after the incident; capture time is unknown.",
+        "source_type": "photo",
+        "case_min": 8.0,
+        "case_best": 11.0,
+        "case_max": null,
+        "alignment_basis": "Post-incident, time unknown.",
+        "alignment_confidence": 0.45,
+        "confidence": 0.88,
+        "verification_status": "unverified",
+        "evidence_type": "observation",
+        "supports": [
+          "impact"
+        ]
+      },
+      {
+        "source_id": "demo-photo-side",
+        "source_start": null,
+        "source_end": null,
+        "event_id": "side-photo",
+        "title": "Rear damage documented",
+        "description": "Illustrative photograph shows rear damage to car B after the incident; capture time is unknown.",
+        "source_type": "photo",
+        "case_min": 8.0,
+        "case_best": 12.0,
+        "case_max": null,
+        "alignment_basis": "Post-incident, time unknown.",
+        "alignment_confidence": 0.45,
+        "confidence": 0.88,
+        "verification_status": "unverified",
+        "evidence_type": "observation",
+        "supports": [
+          "impact"
+        ]
+      }
+    ],
+    "summary": [
+      {
+        "text": "The synthetic dashcam illustrates an approach followed by vehicle contact around 8 seconds.",
+        "source_refs": [
+          {
+            "source_id": "demo-video",
+            "source_start": 4.0,
+            "source_end": 9.0
+          }
+        ]
+      },
+      {
+        "text": "The voice memo describes a green signal, while the illustrated signal remains red. Neither account has been independently verified.",
+        "source_refs": [
+          {
+            "source_id": "demo-video",
+            "source_start": 4.0,
+            "source_end": 8.0
+          },
+          {
+            "source_id": "demo-audio",
+            "source_start": 11.0,
+            "source_end": 16.0
+          }
+        ]
+      },
+      {
+        "text": "Two illustrative damage images support a post-incident inspection, but their capture times are unknown.",
+        "source_refs": [
+          {
+            "source_id": "demo-photo-front",
+            "source_start": null,
+            "source_end": null
+          },
+          {
+            "source_id": "demo-photo-side",
+            "source_start": null,
+            "source_end": null
+          }
+        ]
+      }
+    ],
+    "missing_evidence": [
+      {
+        "id": "independent-view",
+        "title": "Independent view of the junction",
+        "description": "A second camera angle could clarify movement immediately before contact.",
+        "source_refs": [
+          {
+            "source_id": "demo-video",
+            "source_start": 4.0,
+            "source_end": 9.0
+          }
+        ]
+      },
+      {
+        "id": "photo-time",
+        "title": "Original photo timestamps",
+        "description": "Original metadata is needed to establish when damage photographs were captured.",
+        "source_refs": [
+          {
+            "source_id": "demo-photo-front",
+            "source_start": null,
+            "source_end": null
+          },
+          {
+            "source_id": "demo-photo-side",
+            "source_start": null,
+            "source_end": null
+          }
+        ]
+      }
+    ],
+    "contradictions": [
+      {
+        "id": "motion-conflict",
+        "title": "Signal color before contact",
+        "description": "The voice memo states the signal was green; the synthetic video illustrates a red signal. These sources disagree and require independent corroboration.",
+        "source_refs": [
+          {
+            "source_id": "demo-video",
+            "source_start": 4.0,
+            "source_end": 8.0
+          },
+          {
+            "source_id": "demo-audio",
+            "source_start": 11.0,
+            "source_end": 16.0
+          }
+        ]
+      }
+    ],
+    "mode": "demo",
+    "notice": "Synthetic demonstration: staged media and prewritten analysis. All claims remain unverified; this is not evidence of a real incident."
+  }
+}
