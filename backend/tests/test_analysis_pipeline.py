@@ -81,6 +81,43 @@ def test_cache_remaps_ids_and_uses_content_and_role(case, tmp_path, monkeypatch)
     assert len(FakeProvider.calls) == 8
 
 
+def test_incremental_evidence_reuses_prior_extraction_and_resynthesizes(case, tmp_path, monkeypatch):
+    FakeProvider.calls = []
+    monkeypatch.setattr(pipeline, "GeminiProvider", FakeProvider)
+    video, audio = case.media_files[:2]
+    video_path = tmp_path / video.filename
+    audio_path = tmp_path / audio.filename
+    video_path.write_bytes(b"unchanged video")
+    audio_path.write_bytes(b"new audio testimony")
+    paths = {video.source_id: video_path, audio.source_id: audio_path}
+    settings = AnalysisSettings(api_key="test", mode="live", cache_dir=tmp_path / "cache")
+    sparse = case.model_copy(update={"media_files": [video], "analysis": None})
+    first = asyncio.run(analyze(sparse, paths, AsyncMock(), settings=settings))
+    assert FakeProvider.calls == [("Extraction", "video/mp4"), ("Analysis", None)]
+    assert {event.source_id for event in first.events} == {video.source_id}
+
+    # Appending evidence changes canonical IDs but must not re-extract old bytes.
+    expanded = sparse.model_copy(update={"media_files": [video, audio], "analysis": first})
+    second = asyncio.run(analyze(expanded, paths, AsyncMock(), settings=settings))
+    assert FakeProvider.calls == [
+        ("Extraction", "video/mp4"), ("Analysis", None),
+        ("Extraction", "audio/mp4"), ("Analysis", None),
+    ]
+    assert second.mode == "live"
+    assert {event.source_id for event in second.events} == {video.source_id, audio.source_id}
+    assert len({event.event_id for event in second.events}) == len(second.events)
+    assert next(event for event in second.events if event.source_id == video.source_id).source_start == 1
+    assert next(event for event in second.events if event.source_id == audio.source_id).evidence_type == "testimony"
+    assert asyncio.run(analyze(expanded, paths, AsyncMock(), settings=settings)).mode == "cached"
+    assert len(FakeProvider.calls) == 4
+    # A synthesis policy update must not invalidate the independently versioned extraction.
+    monkeypatch.setattr(pipeline, "SYNTHESIS_PROMPT_VERSION", "new-synthesis-policy")
+    updated_policy = asyncio.run(analyze(expanded, paths, AsyncMock(), settings=settings))
+    assert updated_policy.mode == "live"
+    assert FakeProvider.calls[-1] == ("Analysis", None)
+    assert len(FakeProvider.calls) == 5
+
+
 def test_mock_discloses_uninspected_arbitrary_uploads(case):
     result = asyncio.run(analyze(case, {}, AsyncMock(), settings=AnalysisSettings(mode="mock")))
     assert result.mode == "mock"

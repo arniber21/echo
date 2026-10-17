@@ -10,7 +10,7 @@ from rewind.models import Analysis, Case, MediaFile, validate_analysis
 
 from .cache import JsonCache, cache_key
 from .mock import mock_analysis
-from .prompts import PROMPT_VERSION, SYNTHESIS_PROMPT, extraction_prompt
+from .prompts import PROMPT_VERSION, SYNTHESIS_PROMPT, SYNTHESIS_PROMPT_VERSION, extraction_prompt
 from .provider import GeminiProvider
 from .types import AnalysisSettings, Extraction
 from .validation import validate_extraction, validate_synthesis
@@ -107,7 +107,7 @@ async def analyze(
                 "captured_at": source.captured_at.isoformat() if source.captured_at else None,
                 "events": events, "limitations": extractions[source.source_id].limitations,
             })
-        key = cache_key({"version": PROMPT_VERSION, "model": settings.model, "task": "synthesize", "records": records})
+        key = cache_key({"version": SYNTHESIS_PROMPT_VERSION, "model": settings.model, "task": "synthesize", "records": records})
         result = await asyncio.to_thread(cache.read, key, Analysis)
         if result is not None:
             try:
