@@ -1,0 +1,23 @@
+backend/rewind/memory.py
+  s_4d6956e576b617::t_615246fdcaedfa 1-67
+backend/tests/test_memory.py
+  s_4d6956e576b617::t_615246fdcaedfa 1-56
+frontend/app/components/WorkingAccount.vue
+  s_4d6956e576b617::t_b4598acaaaba19 1-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b1a6a1ae30cd63d6e4a10e30ff1d09c142353a76",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
