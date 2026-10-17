@@ -1,0 +1,21 @@
+frontend/app/components/EvidenceSignals.vue
+  s_4d6956e576b617::t_5da25ca6ca8bfb 146,200
+frontend/app/assets/css/main.css
+  s_4d6956e576b617::t_5da25ca6ca8bfb 57,262,449,641,860,921,1338,1460,1593,1622,1809
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c3596b2a53a0da4fd825860055cd122cc003507a",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
