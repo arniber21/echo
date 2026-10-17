@@ -1,0 +1,43 @@
+frontend/app/assets/css/main.css
+  s_4d6956e576b617::t_3d26e6c6fd55ca 1688-1989
+frontend/app/components/EvidenceLibrary.vue
+  s_4d6956e576b617::t_3b887a6cc6d930 4-10,12-15,25-37,40,43-75,78
+frontend/app/components/EvidenceMetadata.vue
+  s_4d6956e576b617::t_bf364a2830e1c0 1-48
+frontend/app/components/ReconstructionHistory.vue
+  s_4d6956e576b617::t_52a6167a205326 3,13,70-74
+frontend/app/components/SourceDetails.vue
+  s_4d6956e576b617::t_1791a0fa61500d 1-45
+frontend/app/components/SourceMetadataFields.vue
+  s_4d6956e576b617::t_65d6c7f644ec4c 1-53
+frontend/app/components/UploadCase.vue
+  s_4d6956e576b617::t_b6f4b8539cccb1 2-12,15,17-24,26,29-33,36-42,46,51,54-55,57-69,74-76,78-80,83-93,102-140,143,149-150,152-154
+frontend/app/composables/useCaseWorkspace.ts
+  s_4d6956e576b617::t_4cecc0733d68c5 1,48,53,59,66,75-86,117-127
+frontend/app/pages/index.vue
+  s_4d6956e576b617::t_b3713f5a9517d2 2-4,6-7,15-28,54-56,108-115,118,220-223,236-242
+frontend/app/utils/evidence.ts
+  s_4d6956e576b617::t_2b99d08e364591 1-16
+frontend/app/utils/revisions.ts
+  s_4d6956e576b617::t_ccc61d7c0f8930 39-43
+frontend/tests/revisions.test.ts
+  s_4d6956e576b617::t_6efad6894bc41d 3,29,52,71-78,89-96,114-146
+frontend/tests/timeline.test.ts
+  s_4d6956e576b617::t_1351b3f4d1cfb4 3,82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d93cf6e7f2151942e9c087f7ba1cf21c26270717",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
