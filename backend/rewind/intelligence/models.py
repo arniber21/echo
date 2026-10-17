@@ -56,7 +56,10 @@ class VideoRelationship(IntelligenceModel):
     source_a: str
     source_b: str
     relationship: Literal[
-        "same_incident_different_view", "same_footage", "different_incident", "uncertain"
+        "same_incident_different_view",
+        "same_footage",
+        "different_incident",
+        "uncertain",
     ]
     confidence: Probability
     same_incident_probability: Probability
