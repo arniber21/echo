@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+data/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+node_modules/
+.nuxt/
+.output/
+dist/
+playwright-report/
+test-results/
+.cocoindex_code/
+*.pyc
+.DS_Store
