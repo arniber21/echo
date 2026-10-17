@@ -83,6 +83,7 @@ export interface EvidenceIntelligence {
   status: "complete" | "partial" | "unavailable"
   sources: Array<SourceIntelligence>
   claims: Array<ClaimAssessment>
+  video_relationships: Array<VideoRelationship>
   input_tokens: number
   elapsed_seconds: number
   diagnostics: Array<string>
@@ -158,6 +159,23 @@ export interface SourceRef {
 }
 
 export type SourceType = "video" | "audio" | "photo"
+
+export interface VideoRelationship {
+  source_a: string
+  source_b: string
+  relationship: "same_incident_different_view" | "same_footage" | "different_incident" | "uncertain"
+  confidence: number
+  same_incident_probability: number
+  different_view_probability: number
+  basis: string
+  matches: Array<ViewEventMatch>
+}
+
+export interface ViewEventMatch {
+  event_a: string
+  event_b: string
+  probability: number
+}
 
 export interface Case {
   case_id: string

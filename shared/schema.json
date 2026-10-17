@@ -502,6 +502,13 @@
           "title": "Claims",
           "type": "array"
         },
+        "video_relationships": {
+          "items": {
+            "$ref": "#/$defs/VideoRelationship"
+          },
+          "title": "Video Relationships",
+          "type": "array"
+        },
         "input_tokens": {
           "default": 0,
           "minimum": 0,
@@ -941,6 +948,95 @@
       ],
       "title": "SourceType",
       "type": "string"
+    },
+    "VideoRelationship": {
+      "additionalProperties": false,
+      "properties": {
+        "source_a": {
+          "title": "Source A",
+          "type": "string"
+        },
+        "source_b": {
+          "title": "Source B",
+          "type": "string"
+        },
+        "relationship": {
+          "enum": [
+            "same_incident_different_view",
+            "same_footage",
+            "different_incident",
+            "uncertain"
+          ],
+          "title": "Relationship",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "same_incident_probability": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Same Incident Probability",
+          "type": "number"
+        },
+        "different_view_probability": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Different View Probability",
+          "type": "number"
+        },
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        },
+        "matches": {
+          "items": {
+            "$ref": "#/$defs/ViewEventMatch"
+          },
+          "title": "Matches",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_a",
+        "source_b",
+        "relationship",
+        "confidence",
+        "same_incident_probability",
+        "different_view_probability",
+        "basis"
+      ],
+      "title": "VideoRelationship",
+      "type": "object"
+    },
+    "ViewEventMatch": {
+      "additionalProperties": false,
+      "properties": {
+        "event_a": {
+          "title": "Event A",
+          "type": "string"
+        },
+        "event_b": {
+          "title": "Event B",
+          "type": "string"
+        },
+        "probability": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Probability",
+          "type": "number"
+        }
+      },
+      "required": [
+        "event_a",
+        "event_b",
+        "probability"
+      ],
+      "title": "ViewEventMatch",
+      "type": "object"
     },
     "Case": {
       "additionalProperties": false,
