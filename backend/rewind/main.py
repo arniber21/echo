@@ -101,7 +101,8 @@ def create_app(
 ) -> FastAPI:
     config = settings or Settings()
     store = Store(config.data_dir)
-    seed_demo(store)
+    if config.seed_demo:
+        seed_demo(store)
     tasks: set[asyncio.Task] = set()
     analysis_lock = asyncio.Lock()
     case_locks: dict[str, asyncio.Lock] = {}
@@ -148,7 +149,7 @@ def create_app(
             case for case in items if default_id == "demo" or case.case_id != "demo"
         ]
 
-    def workspace_case_id() -> str:
+    def workspace_case_id() -> str | None:
         """A local preference selects the real case opened on the workspace home."""
         try:
             value = json.loads((config.data_dir / "workspace.json").read_text())
@@ -157,11 +158,16 @@ def create_app(
                 return case_id
         except (OSError, ValueError, TypeError, AttributeError):
             pass
-        return "demo"
+        candidates = store.list_cases()
+        return next(
+            (case.case_id for case in candidates if case.case_id != "demo"),
+            "demo" if store.get_case("demo") is not None else None,
+        )
 
-    @app.get("/api/workspace", response_model=Case)
+    @app.get("/api/workspace", response_model=Case | None)
     async def workspace():
-        return require_case(workspace_case_id())
+        case_id = workspace_case_id()
+        return require_case(case_id) if case_id else None
 
     @app.get("/api/cases/{case_id}", response_model=Case)
     async def get_case(case_id: str):

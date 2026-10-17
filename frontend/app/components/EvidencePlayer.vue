@@ -38,7 +38,7 @@ watch(
       />
       <div v-else-if="media?.source_type === 'audio'" class="audio-stage">
         <UIcon name="i-lucide-audio-lines" />
-        <p>Recorded testimony</p>
+        <p>Audio</p>
         <audio
           :key="media.source_id"
           ref="player"

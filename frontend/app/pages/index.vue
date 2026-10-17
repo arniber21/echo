@@ -42,12 +42,12 @@ const supportedIds = computed(
       .flatMap((event) => event.supports) ?? [],
 )
 const stageLabels: Record<string, string> = {
-  uploading: 'Preparing evidence',
+  uploading: 'Uploading files',
   analyzing_video: 'Analyzing video',
   analyzing_audio: 'Analyzing audio',
-  analyzing_photos: 'Inspecting photographs',
-  synthesizing: 'Connecting the evidence',
-  completed: 'Reconstruction complete',
+  analyzing_photos: 'Analyzing photos',
+  synthesizing: 'Updating analysis',
+  completed: 'Analysis complete',
   failed: 'Analysis interrupted',
 }
 watch(currentCase, (value) => {
@@ -118,7 +118,7 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
       <div class="breadcrumb">
         <CaseSwitcher :current-id="currentCase?.case_id" :busy="busy" @select="load" />
         <UIcon name="i-lucide-chevron-right" />
-        <span>{{ currentCase?.title ?? (busy ? 'Opening workspace' : 'New workspace') }}</span>
+        <span>{{ currentCase?.title ?? (busy ? 'Cases' : 'New workspace') }}</span>
       </div>
       <div class="case-header">
         <div>
@@ -256,7 +256,7 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
           />
           <div v-else class="empty-analysis">
             <UIcon name="i-lucide-sparkles" />
-            <h2>Your evidence is ready.</h2>
+            <h2>No analysis yet</h2>
             <p>
               Analyze to build a timeline, connect source evidence, and identify what remains
               uncertain.

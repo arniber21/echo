@@ -8,7 +8,6 @@ async function openDemo(page: Page): Promise<Case> {
   const demo: Case = await response.json()
   await page.goto('/?case=demo')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(demo.title)
-  await expect(page.locator('.analysis-mode-notice')).toContainText('Synthetic demonstration:')
   return demo
 }
 
@@ -139,10 +138,9 @@ test('evidence accumulates in one case while saved recollection and old timeline
   await expect(page.getByText('Saved at revision 2', { exact: true })).toBeVisible()
 })
 
-test('the configured real workspace opens its saved reconstruction by default', async ({ page }) => {
-  const incident: Case = await (await page.request.get('/api/workspace')).json()
-  test.skip(incident.case_id === 'demo', 'No local real-footage workspace has been configured')
-  await page.goto('/')
+test('a saved reconstruction opens from its case URL', async ({ page }) => {
+  const incident: Case = await (await page.request.get('/api/cases/demo')).json()
+  await page.goto(`/?case=${incident.case_id}`)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(incident.title)
   await expect(page.getByText('Synthetic demo', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Working account', exact: true })).toBeVisible()
@@ -152,6 +150,28 @@ test('the configured real workspace opens its saved reconstruction by default', 
   await expectSeek(page, 'video', event.source_start)
   await page.screenshot({ path: 'test-results/real-workspace.png', fullPage: true })
 })
+
+test('an empty workspace has a direct upload action and no marketing copy', async ({ page }) => {
+  await page.route('**/api/workspace', route => route.fulfill({ json: null }))
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'No cases yet', exact: true })).toBeVisible()
+  await page.locator('.empty-analysis').getByRole('button', { name: 'Add footage & files', exact: true }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Browse files', exact: true })).toBeVisible()
+})
+
+for (const width of [320, 375, 414, 768]) {
+  test(`native typography and upload controls fit at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await openDemo(page)
+    const fontFamily = await page.locator('body').evaluate(element => getComputedStyle(element).fontFamily)
+    expect(fontFamily).toContain('-apple-system')
+    expect(fontFamily).not.toMatch(/Inter|Avenir/i)
+    await expect(page.locator('header').getByRole('button', { name: 'Add footage & files', exact: true })).toBeVisible()
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy()
+    await page.screenshot({ path: `test-results/workspace-${width}.png`, fullPage: true })
+  })
+}
 
 test('obvious file intake captures annotations and editing them preserves the original evidence', async ({ page }) => {
   await openDemo(page)

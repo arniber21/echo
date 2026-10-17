@@ -67,7 +67,7 @@ function printReport() {
         </p>
       </section>
       <section>
-        <h2>01 / Case summary</h2>
+        <h2>Analysis</h2>
         <p v-if="!incident.analysis">Analysis has not been completed.</p>
         <div v-for="(claim, index) in incident.analysis?.summary" :key="index" class="report-claim">
           <p>{{ claim.text }}</p>
@@ -82,7 +82,7 @@ function printReport() {
         </div>
       </section>
       <section>
-        <h2>02 / Evidence inventory</h2>
+        <h2>Evidence inventory</h2>
         <table>
           <thead>
             <tr>
@@ -125,7 +125,7 @@ function printReport() {
         </table>
       </section>
       <section>
-        <h2>03 / Estimated timeline</h2>
+        <h2>Timeline</h2>
         <article
           v-for="event in incident.analysis?.events"
           :key="event.event_id"
@@ -168,9 +168,9 @@ function printReport() {
       </section>
       <section
         v-for="group in [
-          { title: '04 / Missing evidence', items: incident.analysis?.missing_evidence ?? [] },
+          { title: 'Missing evidence', items: incident.analysis?.missing_evidence ?? [] },
           ...(incident.analysis?.contradictions.length
-            ? [{ title: '05 / Contradictions', items: incident.analysis.contradictions }]
+            ? [{ title: 'Contradictions', items: incident.analysis.contradictions }]
             : []),
         ]"
         :key="group.title"
@@ -192,10 +192,6 @@ function printReport() {
           >
         </article>
       </section>
-      <footer>
-        Rewind · Local evidence workspace · All findings unverified · Evidence informs. People
-        decide.
-      </footer>
     </article>
   </div>
 </template>

@@ -32,7 +32,7 @@ watch(
     />
     <div class="insight-content">
       <template v-if="tab === 'summary'"
-        ><div class="eyebrow">Analysis</div>
+        ><h2 class="insight-heading">Analysis</h2>
         <article v-for="(claim, index) in analysis.summary" :key="index" class="summary-claim">
           <span class="claim-number">{{ (index + 1).toString().padStart(2, '0') }}</span>
           <div>
@@ -44,7 +44,7 @@ watch(
             />
           </div></article></template
       ><template v-else-if="tab === 'gaps'"
-        ><div class="eyebrow">Missing evidence</div>
+        ><h2 class="insight-heading">Missing evidence</h2>
         <article v-for="gap in analysis.missing_evidence" :key="gap.id" class="finding-card">
           <UIcon name="i-lucide-scan-search" />
           <div>
@@ -61,7 +61,7 @@ watch(
           No specific missing evidence was identified. This does not establish completeness.
         </p></template
       ><template v-else-if="tab === 'conflicts' && analysis.contradictions.length"
-        ><div class="eyebrow">Contradictions</div>
+        ><h2 class="insight-heading">Contradictions</h2>
         <article
           v-for="conflict in analysis.contradictions"
           :key="conflict.id"
@@ -89,3 +89,11 @@ watch(
     </div>
   </section>
 </template>
+<style scoped>
+.insight-heading {
+  margin-bottom: 16px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+</style>

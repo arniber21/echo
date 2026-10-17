@@ -38,11 +38,16 @@ build:
 check-live:
     uv run --project backend python -m rewind.analysis.check_live --root .
 
-# Run browser acceptance checks against servers started by `just demo-mock`.
+# Run browser acceptance checks on isolated temporary servers and storage.
 check-browser:
     cd e2e && bun install --frozen-lockfile
     cd e2e && bunx tsc --noEmit
     cd e2e && bunx playwright test
+
+# Require the real clip dataset and exercise uploads, annotations, playback, and analysis.
+check-clips:
+    cd e2e && bun install --frozen-lockfile
+    cd e2e && REWIND_REQUIRE_REAL_CLIPS=1 bunx playwright test --grep @real-clips
 
 # Download and splice attributed real dashcam data under ignored data/footage/.
 prepare-footage:

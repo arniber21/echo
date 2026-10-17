@@ -19,7 +19,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'Rewind — evidence into understanding',
+      title: 'Rewind',
       meta: [
         { name: 'description', content: 'An evidence-linked incident reconstruction workspace.' },
       ],

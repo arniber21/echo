@@ -28,10 +28,9 @@ Devbox pins Python, Node, Bun, uv, just, and FFmpeg. `uv.lock` and `bun.lock` pi
 application dependencies. Tasks also run without entering a shell:
 `devbox run -- just check`.
 
-The home page opens the locally selected case. The prepared workspace uses a real
-intersection incident cut from the user-provided compilation. Original evidence,
-analysis, history, and the default-case preference live under gitignored `data/`.
-See [local clip provenance](demo/real-footage/local-incident.md) for source offsets.
+The workspace starts empty. Upload files to create a case; later visits open the
+selected or most recent case. Sample cases are never inserted during normal startup.
+Original evidence, analysis, history, and preferences live under gitignored `data/`.
 
 To prepare and open that case on another machine, run the local splice script with
 your source path, then import its output through the API:
@@ -41,10 +40,10 @@ uv run --project backend python scripts/prepare_local_incident.py '/path/to/comp
 uv run --project backend python scripts/import_case.py data/footage/local-intersection/incident.mp4 --title 'Intersection incident' --analyze live --default
 ```
 
-Start `just demo` before importing. The original video is never modified. On a
-fresh checkout with no selected real case, a bundled synthetic fixture is available
-as a fallback. It remains explicitly accessible at `/?case=demo` for automated
-tests. See [fixture details](demo/README.md).
+Start `just demo` before importing. The original video is never modified. A bundled
+synthetic fixture is used only by the isolated browser tests. Explicit manual
+fixture seeding requires `REWIND_SEED_DEMO=true`; it is disabled by default.
+See [fixture details](demo/README.md) and [local clip provenance](demo/real-footage/local-incident.md).
 
 ## Build a case over time
 
@@ -85,8 +84,8 @@ With no key, new uploads use explicitly labeled **simulated analysis** to exerci
 the workflow. Mock findings describe workflow and do not claim to have inspected
 the uploaded incident. `just demo-mock` forces this mode even when a key exists.
 With a key, Analyze uses Gemini and reports a readable error if it fails. Errors
-never silently substitute mock evidence. The pre-analyzed demonstration remains
-available through the demo action.
+never silently substitute mock evidence. Previously completed analysis remains
+saved on the case, and exact-content extraction caches can be reused on retry.
 
 Original uploads and SQLite are stored under `data/`. Gemini is the sole external
 recipient of evidence during live analysis. Use synthetic or consented media.
@@ -105,7 +104,8 @@ new case. Cache hits do not call Gemini.
 | Backend tests, frontend tests, type checking, contract drift | `just check` |
 | Build the production frontend | `just build` |
 | Analyze demo files with Gemini and print source times | `just check-live` |
-| Browser acceptance checks (servers running) | `just check-browser` |
+| Browser acceptance checks (isolated servers and database) | `just check-browser` |
+| Require and test every prepared real incident clip | `just check-clips` |
 | Prepare real dashcam incident and partial clips | `just prepare-footage` |
 
 `just check-live` is an explicit live check and fails if credentials or Gemini fail.
@@ -114,8 +114,11 @@ cache, run `uv run --project backend python -m rewind.analysis.check_live --root
 
 For browser checks, install Chromium once with
 `cd e2e && bunx playwright install chromium` after installing the e2e dependencies.
-Use `just demo-mock` for the automated rehearsal so it is deterministic and incurs
-no API usage.
+Browser checks start their own frontend on port 3123 and API on port 8123, with
+temporary SQLite and Nuxt build directories. They force simulated analysis and
+do not populate or modify the user workspace on port 3000. The prepared real clips
+are included automatically when their manifest exists; `just check-clips` requires
+that dataset and fails if it is missing. Browser action tests make no Gemini calls.
 
 Real dashcam test data is prepared under `data/footage/`. The 25-second
 `van-incident.mp4` and before/impact/after fragments preserve the original recording

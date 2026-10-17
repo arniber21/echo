@@ -14,7 +14,12 @@ from rewind.models import Analysis, Case, Event, validate_analysis
 
 
 def settings(tmp_path, **kwargs):
-    return Settings(_env_file=None, data_dir=tmp_path, **kwargs)
+    return Settings(
+        _env_file=None,
+        data_dir=tmp_path,
+        seed_demo=kwargs.pop("seed_demo", True),
+        **kwargs,
+    )
 
 
 def jpeg():
@@ -53,7 +58,16 @@ def test_workspace_opens_selected_real_case_and_keeps_fixture_out_of_case_picker
             client.get("/api/cases/demo").status_code == 200
         )  # Explicit test-fixture access.
         (tmp_path / "workspace.json").write_text('{"case_id":"missing-case"}')
-        assert client.get("/api/workspace").json()["case_id"] == "demo"
+        assert client.get("/api/workspace").json()["case_id"] == created["case_id"]
+
+
+def test_normal_workspace_starts_blank_and_remains_blank_after_restart(tmp_path):
+    for _ in range(2):
+        with TestClient(create_app(settings(tmp_path, seed_demo=False))) as client:
+            assert client.get("/api/cases").json() == []
+            assert client.get("/api/workspace").status_code == 200
+            assert client.get("/api/workspace").json() is None
+            assert client.get("/api/cases/demo").status_code == 404
 
 
 def test_upload_is_content_validated_and_path_safe(tmp_path):

@@ -26,7 +26,6 @@ const savedAt = computed(() => new Date(props.memory.updated_at).toLocaleString(
     <div class="account-heading">
       <div>
         <h2>Working account</h2>
-        <p>The saved, evidence-linked account of this case. All claims remain unverified.</p>
       </div>
       <UBadge :color="pending ? 'warning' : 'neutral'" variant="subtle">{{
         pending ? 'New evidence pending' : `Saved at revision ${memory.revision}`
@@ -83,10 +82,7 @@ const savedAt = computed(() => new Date(props.memory.updated_at).toLocaleString(
       <summary>View saved data</summary>
       <pre>{{ JSON.stringify(memory, null, 2) }}</pre>
     </details>
-    <p class="account-storage">
-      Committed {{ savedAt }} · updated only after successful analysis. Repeated entries share a
-      stable content ID; prior entries are retained.
-    </p>
+    <p class="account-storage">Saved {{ savedAt }}</p>
   </section>
 </template>
 

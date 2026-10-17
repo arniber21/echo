@@ -49,6 +49,7 @@ def main() -> int:
     signal.signal(signal.SIGTERM, stop)
     environment = os.environ.copy()
     environment["NUXT_API_BASE"] = f"http://127.0.0.1:{api_port}"
+    frontend_directory = Path(os.environ.get("REWIND_FRONTEND_DIR", ROOT / "frontend"))
     commands = [
         (
             [
@@ -73,7 +74,7 @@ def main() -> int:
         ),
         (
             ["bun", "run", "dev", "--host", "127.0.0.1", "--port", str(web_port)],
-            ROOT / "frontend",
+            frontend_directory,
         ),
     ]
     print(
