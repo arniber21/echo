@@ -1,0 +1,27 @@
+frontend/app/assets/css/main.css
+  s_4d6956e576b617::t_e7dac55a6bb958 1262-1537
+frontend/app/components/UnifiedTimeline.vue
+  s_4d6956e576b617::t_c0ac76f0de9251 1-114
+frontend/app/pages/index.vue
+  s_4d6956e576b617::t_47864685ed04f4 140-146
+frontend/app/utils/timeline.ts
+  s_4d6956e576b617::t_8f00725b23d078 59-73
+frontend/tests/timeline.test.ts
+  s_4d6956e576b617::t_4dbe363f10618d 7,88-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "afc2952949fe9ce21a951d8f827131a589056d5b",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
