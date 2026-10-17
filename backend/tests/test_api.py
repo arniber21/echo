@@ -147,8 +147,10 @@ def test_fixture_and_reference_integrity():
         validate_analysis(broken, case.media_files)
     event = case.analysis.events[0].model_dump()
     event["case_best"] = 4.25
+    altered = case.analysis.model_copy(deep=True)
+    altered.events[0] = Event.model_validate(event)
     with pytest.raises(ValueError, match="source clock"):
-        Event.model_validate(event)
+        validate_analysis(altered, case.media_files)
 
 
 def test_unknown_ids_return_actionable_404(tmp_path):
@@ -156,3 +158,75 @@ def test_unknown_ids_return_actionable_404(tmp_path):
         for url in ("/api/cases/missing", "/api/jobs/missing", "/api/media/missing"):
             assert client.get(url).status_code == 404
         assert client.post("/api/cases/missing/analyze").status_code == 404
+
+
+def test_secondary_video_has_its_own_seek_clock():
+    case = Case.model_validate_json((ROOT / "shared/sample_case.json").read_text())
+    second = case.media_files[0].model_copy(
+        update={"source_id": "secondary", "sha256": "zzzz"}
+    )
+    case.media_files.append(second)
+    secondary_event = case.analysis.events[0].model_copy(
+        update={
+            "event_id": "second-view",
+            "source_id": "secondary",
+            "source_start": 2,
+            "source_end": 3,
+            "case_min": 7,
+            "case_best": 8,
+            "case_max": 9,
+            "alignment_basis": "Contact matched to the primary video; estimated offset +6 seconds.",
+        }
+    )
+    case.analysis.events.append(secondary_event)
+    valid = validate_analysis(case.analysis, case.media_files)
+    assert valid.events[-1].source_start == 2
+    assert valid.events[-1].case_best == 8
+    # Reordering uploads cannot change the primary clock.
+    validate_analysis(case.analysis, list(reversed(case.media_files)))
+    invalid = case.analysis.model_copy(deep=True)
+    invalid.events[-1].case_min = -1
+    with pytest.raises(ValueError, match="nonnegative"):
+        validate_analysis(invalid, case.media_files)
+
+
+def test_photo_exif_requires_explicit_timezone(tmp_path):
+    from rewind.uploads import captured_at
+
+    for offset in (None, "+02:00", "invalid"):
+        exif = Image.Exif()
+        values = {0x9003: "2026:10:17 12:34:56"}
+        if offset:
+            values[0x9011] = offset
+        exif[0x8769] = values
+        path = tmp_path / f"photo-{offset}.jpg"
+        Image.new("RGB", (8, 8), "blue").save(path, exif=exif)
+        result = captured_at(path)
+        if offset == "+02:00":
+            assert result.isoformat() == "2026-10-17T12:34:56+02:00"
+        else:
+            assert result is None
+
+
+def test_audio_detected_from_bytes_instead_of_filename(tmp_path):
+    import shutil
+    import wave
+
+    if shutil.which("ffprobe") is None:
+        pytest.skip("ffprobe is supplied by the devbox environment")
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as audio:
+        audio.setnchannels(1)
+        audio.setsampwidth(2)
+        audio.setframerate(8000)
+        audio.writeframes(b"\x00\x00" * 800)
+    with TestClient(create_app(settings(tmp_path))) as client:
+        response = client.post(
+            "/api/cases",
+            files=[("files", ("pretend-photo.jpg", buffer.getvalue(), "image/jpeg"))],
+        )
+        assert response.status_code == 201
+        source = response.json()["media_files"][0]
+        assert source["source_type"] == "audio"
+        assert source["mime_type"] == "audio/wav"
+        assert source["duration_seconds"] == pytest.approx(0.1)

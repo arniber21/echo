@@ -62,11 +62,6 @@ class Event(SourceRef):
             self.source_start is not None or self.source_end is not None
         ):
             raise ValueError("Photos must not have source timestamps")
-        if (
-            self.source_type == SourceType.VIDEO
-            and abs(self.case_best - self.source_start) > 0.001
-        ):
-            raise ValueError("Video case placement must equal its source clock")
         if self.event_id in self.supports:
             raise ValueError("An event cannot support itself")
         return self
@@ -136,6 +131,11 @@ def validate_analysis(analysis: Analysis, media: list[MediaFile]) -> Analysis:
     sources = {item.source_id: item for item in media}
     if len(sources) != len(media):
         raise ValueError("Media source IDs must be unique")
+    videos = [item for item in media if item.source_type == SourceType.VIDEO]
+    # File content selects the primary clock, independent of multipart order.
+    primary_video = (
+        min(videos, key=lambda item: (item.sha256, item.source_id)) if videos else None
+    )
     event_ids = {event.event_id for event in analysis.events}
     if len(event_ids) != len(analysis.events):
         raise ValueError("Event IDs must be unique")
@@ -157,6 +157,24 @@ def validate_analysis(analysis: Analysis, media: list[MediaFile]) -> Analysis:
                 if value is not None and value > source.duration_seconds + 0.1:
                     raise ValueError("Source timestamp exceeds media duration")
     for event in analysis.events:
+        if event.source_type == SourceType.VIDEO:
+            if primary_video and event.source_id == primary_video.source_id:
+                if abs(event.case_best - event.source_start) > 0.001:
+                    raise ValueError(
+                        "Primary video case placement must equal its source clock"
+                    )
+                if (
+                    event.case_min is None
+                    or event.case_max is None
+                    or event.case_best - event.case_min > 0.501
+                    or event.case_max - event.case_best > 0.501
+                ):
+                    raise ValueError("Primary video events need tight placement ranges")
+            elif any(
+                value is not None and value < 0
+                for value in (event.case_min, event.case_best, event.case_max)
+            ):
+                raise ValueError("Secondary video placement ranges must be nonnegative")
         if sources[event.source_id].source_type != event.source_type:
             raise ValueError("Event source type does not match media")
         if not set(event.supports) <= event_ids:
