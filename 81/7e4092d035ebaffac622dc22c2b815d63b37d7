@@ -1,0 +1,25 @@
+demo/real-footage/additional-test-set.md
+  s_4d6956e576b617::t_4a46a790143b0e 1-45
+justfile
+  s_4d6956e576b617::t_b2fd5da3932f5b 59-66
+scripts/ingest_prepared_clips.py
+  s_4d6956e576b617::t_8203d3be1c13a8 1-84
+scripts/prepare_additional_clips.py
+  s_4d6956e576b617::t_a9ae68130eb492 1-334
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "817e4092d035ebaffac622dc22c2b815d63b37d7",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
