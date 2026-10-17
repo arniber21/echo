@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import type { Analysis, MediaFile, SourceRef } from '../types/generated'
+import type { TabsItem } from '@nuxt/ui'
 const props = defineProps<{ analysis: Analysis; media: MediaFile[] }>()
 const emit = defineEmits<{ select: [reference: SourceRef] }>()
 const tab = ref('summary')
-const tabs = computed(() => [
-  { id: 'summary', label: 'Case summary' },
-  { id: 'gaps', label: 'Missing evidence' },
-  ...(props.analysis.contradictions.length ? [{ id: 'conflicts', label: 'Contradictions' }] : []),
+const tabs = computed<TabsItem[]>(() => [
+  { value: 'summary', label: 'Case summary' },
+  { value: 'gaps', label: 'Missing evidence', badge: props.analysis.missing_evidence.length },
+  ...(props.analysis.contradictions.length
+    ? [{ value: 'conflicts', label: 'Contradictions', badge: props.analysis.contradictions.length }]
+    : []),
 ])
 watch(
   () => props.analysis,
@@ -17,19 +20,16 @@ watch(
 </script>
 <template>
   <section class="insights-panel">
-    <div class="insight-tabs" role="tablist" aria-label="Analysis details">
-      <button
-        v-for="item in tabs"
-        :key="item.id"
-        role="tab"
-        :aria-selected="tab === item.id"
-        :class="{ active: tab === item.id }"
-        @click="tab = item.id"
-      >
-        {{ item.label }}<span v-if="item.id === 'gaps'">{{ analysis.missing_evidence.length }}</span
-        ><span v-if="item.id === 'conflicts'">{{ analysis.contradictions.length }}</span>
-      </button>
-    </div>
+    <UTabs
+      v-model="tab"
+      :items="tabs"
+      :content="false"
+      color="neutral"
+      variant="link"
+      class="insight-tabs"
+      aria-label="Analysis details"
+      :ui="{ indicator: 'hidden', trigger: 'transition-none', list: 'gap-0' }"
+    />
     <div class="insight-content">
       <template v-if="tab === 'summary'"
         ><div class="eyebrow">WHAT THE EVIDENCE SUGGESTS</div>

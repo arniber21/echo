@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 @theme {
-  --font-sans: 'Inter', 'Avenir Next', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 :root {
   --ui-bg: #faf9f6;
@@ -54,7 +54,7 @@ a {
   gap: 10px;
   font-size: 28px;
   font-weight: 750;
-  letter-spacing: -1.5px;
+
   color: #242a25;
 }
 .brand-symbol {
@@ -76,7 +76,7 @@ a {
 }
 .brand-tagline {
   font-size: 14px;
-  letter-spacing: 0;
+
   color: #636d59;
   font-weight: 400;
 }
@@ -88,7 +88,7 @@ a {
 .local-label {
   font-size: 12px;
   font-weight: 650;
-  letter-spacing: 1.4px;
+
   color: #636d59;
   display: flex;
   align-items: center;
@@ -126,7 +126,7 @@ a {
 .eyebrow {
   font-size: 12px;
   font-weight: 650;
-  letter-spacing: 1.5px;
+
   color: #636d59;
   display: flex;
   gap: 13px;
@@ -139,7 +139,7 @@ a {
 }
 h1 {
   font-size: 28px;
-  letter-spacing: -0.8px;
+
   line-height: 1.2;
   font-weight: 550;
   margin: 10px 0 9px;
@@ -192,7 +192,7 @@ h1 {
 }
 .demo-tag {
   font-size: 11px;
-  letter-spacing: 1px;
+
   color: #636d59;
   white-space: nowrap;
 }
@@ -210,7 +210,7 @@ h1 {
 h2 {
   font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.3px;
+
   margin: 0;
 }
 h3 {
@@ -296,7 +296,7 @@ h3 {
 }
 .evidence-info .evidence-number {
   font-size: 11px;
-  letter-spacing: 1px;
+
   color: #636d59;
 }
 .evidence-item > .iconify {
@@ -329,7 +329,7 @@ h3 {
 }
 .note-kicker {
   font-size: 11px;
-  letter-spacing: 1.2px;
+
   color: #636d59;
 }
 .workspace-note p {
@@ -362,7 +362,7 @@ h3 {
   justify-content: space-between;
   color: #8e9e8c;
   font-size: 11px;
-  letter-spacing: 1.1px;
+
   border-bottom: 1px solid #ffffff0a;
 }
 .player-toolbar > span:first-child {
@@ -375,7 +375,7 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at center, #30392f, #1b211d);
+  background: #1b211d;
   position: relative;
 }
 .player-stage video,
@@ -481,7 +481,7 @@ h3 {
   grid-template-columns: minmax(200px, 34%) 1fr;
   gap: 18px;
   font-size: 11px;
-  letter-spacing: 0.7px;
+
   color: #636d59;
   padding: 0 0 10px;
   border-bottom: 1px solid #e9ebe1;
@@ -593,12 +593,12 @@ h3 {
 .estimated {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+
   margin-left: 5px;
 }
 .range-bar.open-end {
   border-right-style: dashed;
-  background: linear-gradient(90deg, #dce4cd, #dce4cd40);
+  background: #dce4cd;
 }
 .range-bar.open-start {
   border-left-style: dashed;
@@ -632,33 +632,34 @@ h3 {
   border-radius: 0 0 8px 8px;
 }
 .insight-tabs {
-  display: flex;
-  gap: 26px;
+  min-width: 0;
+  width: 100%;
   padding: 0 22px;
   border-bottom: 1px solid #e5e7dc;
-  overflow: auto;
 }
-.insight-tabs button {
+.insight-tabs [role='tablist'] {
+  display: flex;
+  gap: 26px;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  border: 0;
+  padding: 0;
+}
+.insight-tabs [role='tab'] {
+  flex: none;
+  min-height: 44px;
   padding: 17px 0 14px;
   white-space: nowrap;
   font-size: 13px;
   color: #636d59;
   border-bottom: 2px solid transparent;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  border-radius: 0;
 }
-.insight-tabs button.active {
+.insight-tabs [role='tab'][data-state='active'] {
   border-bottom-color: #7e8d65;
   color: #414e36;
   font-weight: 600;
-}
-.insight-tabs button span {
-  font-size: 11px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: #edf0e3;
-  color: #636d59;
 }
 .insight-content {
   padding: 22px;
@@ -765,7 +766,7 @@ h3 {
   font-weight: 500;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+
   margin-bottom: 4px;
   color: #636d59;
 }
@@ -825,12 +826,11 @@ h3 {
   padding: 20px 0;
   border-top: 1px solid #e1e4d6;
   font-size: 11px;
-  letter-spacing: 1px;
+
   color: #636d59;
 }
 .workspace-footer > span:last-child {
   font-size: 12px;
-  letter-spacing: 0;
 }
 .upload-form {
   display: flex;
@@ -899,7 +899,6 @@ h3 {
 }
 .report-masthead > span:last-child {
   font-size: 11px;
-  letter-spacing: 1.4px;
 }
 .report-date {
   font-size: 13px;
@@ -1320,7 +1319,6 @@ h3 {
   font-variant-numeric: tabular-nums;
 }
 .unified-axis > span {
-  letter-spacing: 1px;
 }
 .unified-lane {
   min-height: 70px;
@@ -1421,7 +1419,7 @@ h3 {
 }
 .unified-event.open-end {
   border-right-style: dashed;
-  background: linear-gradient(90deg, #dce4cd, #dce4cd30);
+  background: #dce4cd;
 }
 .unified-event.open-start {
   border-left-style: dashed;
@@ -1985,5 +1983,60 @@ h3 {
   }
   .header-actions > button {
     font-size: 13px;
+  }
+}
+
+/* Scoped baseline polish: native platform type and existing evidence-workspace structure. */
+:where(h1, h2, h3, h4, h5, h6) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  font-style: normal;
+}
+p {
+  text-wrap: pretty;
+}
+:where(
+  .count,
+  .range-label,
+  .event-metadata,
+  .player-caption,
+  .evidence-info,
+  .revision-current,
+  .revision-delta,
+  .source-context-grid,
+  .timeline-axis,
+  .unified-axis,
+  .progress-panel,
+  .report-date,
+  time
+) {
+  font-variant-numeric: tabular-nums;
+}
+:where(input, textarea, summary):focus-visible {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: 3px;
+}
+:where(button, a, select) {
+  min-width: 0;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+@media (max-width: 800px) {
+  .insight-tabs [role='tablist'] {
+    gap: 18px;
+  }
+  .section-heading {
+    flex-wrap: wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }
