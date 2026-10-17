@@ -95,6 +95,7 @@ export function useCaseWorkspace() {
         body: { mode },
         signal,
       })
+      let refreshedAt = Date.now()
       while (!signal.aborted && job.value.status !== 'completed' && job.value.status !== 'failed') {
         await new Promise<void>((resolve, reject) => {
           function cancel() {
@@ -107,11 +108,19 @@ export function useCaseWorkspace() {
           }, 1000)
           signal.addEventListener('abort', cancel, { once: true })
         })
+        const previousStage = job.value.stage
         job.value = await $fetch<Job>(`/api/jobs/${job.value.job_id}`, { signal })
+        if (job.value.stage !== previousStage || Date.now() - refreshedAt >= 2000) {
+          currentCase.value = await $fetch<Case>(`/api/cases/${encodeURIComponent(caseId)}`, {
+            signal,
+          })
+          refreshedAt = Date.now()
+        }
       }
+      // A failed detailed pass can still have a useful, persisted quick scan.
+      currentCase.value = await $fetch<Case>(`/api/cases/${encodeURIComponent(caseId)}`, { signal })
       if (job.value.status === 'failed')
         throw new Error(job.value.error ?? 'Analysis failed. Retry or open the default case.')
-      currentCase.value = await $fetch<Case>(`/api/cases/${encodeURIComponent(caseId)}`, { signal })
     })
   }
 

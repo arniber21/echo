@@ -3,10 +3,14 @@ import type { Event, MediaFile, SourceRef, SourceMetadata } from '../types/gener
 import type UploadCase from '../components/UploadCase.vue'
 import type EvidenceMetadata from '../components/EvidenceMetadata.vue'
 import { eventSourceReference, formatTime, placementLabel } from '../utils/timeline'
+import { currentPreview } from '../utils/revisions'
 const { currentCase, job, busy, error, load, upload, appendEvidence, saveSourceMetadata, analyze } =
   useCaseWorkspace()
 const { selectedRevision, view, displayedAnalysis, media, needsUpdate } =
   useReconstructionHistory(currentCase)
+const preview = computed(() =>
+  currentCase.value && selectedRevision.value === null ? currentPreview(currentCase.value) : null,
+)
 const clockMedia = computed(() =>
   displayedAnalysis.value
     ? media.value.filter((source) => view.value?.sourceIds.includes(source.source_id))
@@ -52,12 +56,14 @@ const stageLabels: Record<string, string> = {
   completed: 'Analysis complete',
   failed: 'Analysis interrupted',
 }
-watch(currentCase, (value) => {
+watch(currentCase, (value, previous) => {
   if (!value?.media_files.some((source) => source.source_id === selectedSourceId.value)) {
     selectedSourceId.value = value?.media_files[0]?.source_id ?? null
   }
-  selectedEvent.value = null
-  reference.value = null
+  if (value?.case_id !== previous?.case_id) {
+    selectedEvent.value = null
+    reference.value = null
+  }
   if (value && route.query.case !== value.case_id) {
     void router.replace({ query: { case: value.case_id } })
   }
@@ -186,6 +192,15 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
         :incident="currentCase"
         :busy="busy"
       />
+      <ReconstructionPreview
+        v-if="preview"
+        :preview="preview"
+        :media="media"
+        :compact="Boolean(currentCase?.analysis)"
+        :running="busy"
+        :failed="job?.status === 'failed'"
+        @select="selectReference"
+      />
       <UnifiedTimeline
         v-if="displayedAnalysis?.events.length"
         :events="displayedAnalysis.events"
@@ -269,7 +284,7 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
             :intelligence="view.intelligence"
             :analysis="displayedAnalysis"
             :media="media"
-            :pending="!view.historical && needsUpdate"
+            :pending="!view.historical && !view.quickScan && needsUpdate"
             @select="selectReference"
           />
         </div>

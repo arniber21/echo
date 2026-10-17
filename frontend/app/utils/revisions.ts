@@ -13,6 +13,7 @@ export interface ReconstructionView {
   sourceIds: string[]
   media: MediaFile[]
   historical: boolean
+  quickScan: boolean
 }
 
 export interface ReconstructionDelta {
@@ -38,6 +39,7 @@ export function reconstructionView(
     selectedRevision === null
       ? undefined
       : incident.analysis_history.find((item) => item.revision === selectedRevision)
+  const preview = currentPreview(incident)
   return snapshot
     ? {
         analysis: snapshot.analysis,
@@ -50,15 +52,30 @@ export function reconstructionView(
               snapshot.media_source_ids.includes(source.source_id),
             ),
         historical: true,
+        quickScan: false,
       }
     : {
-        analysis: incident.analysis,
-        intelligence: incident.intelligence ?? null,
+        analysis: incident.analysis ?? preview?.analysis ?? null,
+        intelligence: incident.analysis
+          ? (incident.intelligence ?? null)
+          : (preview?.intelligence ?? incident.intelligence ?? null),
         revision: incident.analyzed_revision,
-        sourceIds: incident.analyzed_source_ids,
+        sourceIds: incident.analysis
+          ? incident.analyzed_source_ids
+          : preview
+            ? incident.media_files.map((source) => source.source_id)
+            : incident.analyzed_source_ids,
         media: incident.media_files,
         historical: false,
+        quickScan: !incident.analysis && Boolean(preview),
       }
+}
+
+/** Preview results only describe the evidence revision they were computed against. */
+export function currentPreview(incident: Case) {
+  return incident.preview?.evidence_revision === incident.evidence_revision
+    ? incident.preview
+    : null
 }
 
 /** Count changes describe the size of each result, not semantic additions or removals. */

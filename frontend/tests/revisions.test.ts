@@ -53,6 +53,7 @@ function incident(): Case {
     analysis_history: [],
     memory: null,
     intelligence: null,
+    preview: null,
   }
 }
 
@@ -178,4 +179,38 @@ test('historical evidence signals never fall back to the current reconstruction'
   expect(reconstructionView(value, 1).intelligence).toBeNull()
   value.analysis_history[0]!.intelligence = { ...signals, version: 'older' }
   expect(reconstructionView(value, 1).intelligence?.version).toBe('older')
+})
+
+test('a quick scan fills an empty current view without replacing accepted analysis or history', () => {
+  const value = incident()
+  const previewAnalysis: Analysis = { ...analysis, notice: 'Quick scan' }
+  value.preview = {
+    evidence_revision: value.evidence_revision,
+    created_at: value.created_at,
+    analysis: previewAnalysis,
+    intelligence: signals,
+  }
+  // Existing accepted results remain the primary view.
+  expect(reconstructionView(value, null).analysis).toBe(analysis)
+  expect(reconstructionView(value, null).quickScan).toBe(false)
+  value.analysis_history = [
+    {
+      revision: 1,
+      created_at: value.created_at,
+      media_source_ids: ['video'],
+      media_count: 1,
+      media_files: [video],
+      analysis,
+      intelligence: null,
+    },
+  ]
+  expect(reconstructionView(value, 1).intelligence).toBeNull()
+  expect(reconstructionView(value, 1).quickScan).toBe(false)
+  value.analysis = null
+  expect(reconstructionView(value, null).analysis).toBe(previewAnalysis)
+  expect(reconstructionView(value, null).intelligence).toBe(signals)
+  expect(reconstructionView(value, null).quickScan).toBe(true)
+  value.evidence_revision += 1
+  expect(reconstructionView(value, null).analysis).toBeNull()
+  expect(reconstructionView(value, null).quickScan).toBe(false)
 })

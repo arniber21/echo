@@ -17,8 +17,11 @@ export function useReconstructionHistory(incident: Ref<Case | null>) {
       incident.value.analyzed_revision !== incident.value.evidence_revision,
     ),
   )
-  watch(incident, () => {
-    selectedRevision.value = null
-  })
+  watch(
+    () => incident.value?.case_id,
+    () => {
+      selectedRevision.value = null
+    },
+  )
   return { selectedRevision, view, displayedAnalysis, media, pendingCount, needsUpdate }
 }

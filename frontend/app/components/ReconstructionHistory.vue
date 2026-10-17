@@ -44,7 +44,6 @@ function select(event: globalThis.Event) {
         >Version history<select
           aria-label="Reconstruction version"
           :value="selectedRevision ?? 'current'"
-          :disabled="busy"
           @change="select"
         >
           <option value="current">
