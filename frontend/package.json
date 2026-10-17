@@ -1,0 +1,25 @@
+{
+  "name": "rewind",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --host 127.0.0.1 --port 3000",
+    "build": "nuxt build",
+    "typecheck": "nuxt typecheck",
+    "test": "bun test",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.0",
+    "@nuxt/ui": "^4.0.0",
+    "nuxt": "^4.0.0",
+    "tailwindcss": "^4.0.0",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "^3.9.10",
+    "typescript": "^5.9.0",
+    "vue-tsc": "^3.0.0"
+  }
+}
