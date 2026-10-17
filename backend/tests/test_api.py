@@ -1,5 +1,9 @@
 import asyncio
 import io
+import json
+import os
+import subprocess
+import sys
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,6 +21,39 @@ def jpeg():
     buffer = io.BytesIO()
     Image.new("RGB", (8, 8), "red").save(buffer, format="JPEG")
     return buffer.getvalue()
+
+
+def test_import_does_not_initialize_storage_or_interrupt_other_jobs(tmp_path):
+    target = tmp_path / "must-not-be-created"
+    subprocess.run(
+        [sys.executable, "-c", "import rewind.main"],
+        env={**os.environ, "DATA_DIR": str(target)},
+        cwd=ROOT,
+        check=True,
+    )
+    assert not target.exists()
+
+
+def test_workspace_opens_selected_real_case_and_keeps_fixture_out_of_case_picker(
+    tmp_path,
+):
+    with TestClient(create_app(settings(tmp_path))) as client:
+        assert client.get("/api/workspace").json()["case_id"] == "demo"
+        created = client.post(
+            "/api/cases", files=[("files", ("evidence.jpg", jpeg()))]
+        ).json()
+        (tmp_path / "workspace.json").write_text(
+            json.dumps({"case_id": created["case_id"]})
+        )
+        assert client.get("/api/workspace").json()["case_id"] == created["case_id"]
+        assert [case["case_id"] for case in client.get("/api/cases").json()] == [
+            created["case_id"]
+        ]
+        assert (
+            client.get("/api/cases/demo").status_code == 200
+        )  # Explicit test-fixture access.
+        (tmp_path / "workspace.json").write_text('{"case_id":"missing-case"}')
+        assert client.get("/api/workspace").json()["case_id"] == "demo"
 
 
 def test_upload_is_content_validated_and_path_safe(tmp_path):

@@ -2,8 +2,10 @@
 import type { Case } from '../types/generated'
 import { formatTime, placementLabel, sourceLabel } from '../utils/timeline'
 const route = useRoute()
-const caseId = typeof route.query.case === 'string' ? route.query.case : 'demo'
-const { data: incident, error } = await useFetch<Case>(`/api/cases/${encodeURIComponent(caseId)}`)
+const caseId = typeof route.query.case === 'string' ? route.query.case : null
+const { data: incident, error } = await useFetch<Case>(
+  caseId ? `/api/cases/${encodeURIComponent(caseId)}` : '/api/workspace',
+)
 function printReport() {
   window.print()
 }
@@ -12,7 +14,7 @@ function printReport() {
   <div class="report-shell">
     <div class="report-controls">
       <UButton
-        :to="`/?case=${encodeURIComponent(caseId)}`"
+        :to="incident ? `/?case=${encodeURIComponent(incident.case_id)}` : '/'"
         icon="i-lucide-arrow-left"
         color="neutral"
         variant="ghost"
@@ -28,6 +30,12 @@ function printReport() {
       <div class="eyebrow">CASE {{ incident.case_id }}</div>
       <h1>{{ incident.title }}</h1>
       <p class="report-date">Created {{ new Date(incident.created_at).toLocaleString('en-US') }}</p>
+      <p class="report-date">
+        Evidence revision {{ incident.evidence_revision }} · Reconstruction
+        {{ incident.analyzed_revision ?? 'not yet analyzed' }} ·
+        {{ incident.analyzed_source_ids.length }} of {{ incident.media_files.length }} sources
+        incorporated
+      </p>
       <div class="report-notice">
         <strong>Unverified AI-assisted reconstruction</strong>
         <p>
@@ -41,7 +49,23 @@ function printReport() {
           >
         </p>
         <p v-if="incident.analysis?.notice">{{ incident.analysis.notice }}</p>
+        <p v-if="incident.analysis && incident.analyzed_revision !== incident.evidence_revision">
+          <strong
+            >NEW EVIDENCE PENDING: this reconstruction has not incorporated every file in the
+            inventory. Update the case before relying on the latest evidence set.</strong
+          >
+        </p>
       </div>
+      <section v-if="incident.memory">
+        <h2>Saved working account · revision {{ incident.memory.revision }}</h2>
+        <p>
+          Committed {{ new Date(incident.memory.updated_at).toLocaleString() }}.
+          {{ incident.memory.entries.filter((entry) => entry.status === 'active').length }} active
+          evidence-linked entries;
+          {{ incident.memory.entries.filter((entry) => entry.status === 'superseded').length }}
+          superseded entries retained in the case.
+        </p>
+      </section>
       <section>
         <h2>01 / Case summary</h2>
         <p v-if="!incident.analysis">Analysis has not been completed.</p>

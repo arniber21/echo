@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 import pytest
-
 from rewind.memory import project_memory
 from rewind.models import Analysis, Claim, Finding, SourceRef
 
@@ -9,7 +8,10 @@ NOW = datetime(2026, 10, 17, tzinfo=UTC)
 
 
 def analysis(text: str) -> Analysis:
-    return Analysis(events=[], summary=[Claim(text=text, source_refs=[SourceRef(source_id="video")])])
+    return Analysis(
+        events=[],
+        summary=[Claim(text=text, source_refs=[SourceRef(source_id="video")])],
+    )
 
 
 def test_unchanged_claims_retain_identity_without_duplicate_storage():
@@ -35,8 +37,13 @@ def test_replaced_claims_remain_superseded_and_new_claims_have_new_identity():
 
 
 def test_ref_order_does_not_change_identity_but_source_time_does():
-    refs = [SourceRef(source_id="video", source_start=8), SourceRef(source_id="audio", source_start=6)]
-    value = Analysis(events=[], summary=[Claim(text="Accounts disagree.", source_refs=refs)])
+    refs = [
+        SourceRef(source_id="video", source_start=8),
+        SourceRef(source_id="audio", source_start=6),
+    ]
+    value = Analysis(
+        events=[], summary=[Claim(text="Accounts disagree.", source_refs=refs)]
+    )
     first = project_memory(None, value, 1, NOW)
     value.summary[0].source_refs.reverse()
     second = project_memory(first, value, 2, NOW)
@@ -49,7 +56,9 @@ def test_ref_order_does_not_change_identity_but_source_time_does():
 
 def test_questions_and_conflicts_are_explicit_and_revision_cannot_rewind():
     value = analysis("Contact is visible.")
-    value.missing_evidence = [Finding(id="gap", title="Other view", description="A second view is missing.")]
+    value.missing_evidence = [
+        Finding(id="gap", title="Other view", description="A second view is missing.")
+    ]
     first = project_memory(None, value, 2, NOW)
     assert {entry.kind for entry in first.entries} == {"summary", "question"}
     with pytest.raises(ValueError, match="backwards"):

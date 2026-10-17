@@ -26,6 +26,7 @@ check:
     uv run --project backend pytest backend/tests
     cd frontend && bun run test
     cd frontend && bun run typecheck
+    cd frontend && bunx prettier --check app tests nuxt.config.ts
     just types
     git diff --exit-code -- shared/schema.json frontend/app/types/generated.ts
 
@@ -40,6 +41,7 @@ check-live:
 # Run browser acceptance checks against servers started by `just demo-mock`.
 check-browser:
     cd e2e && bun install --frozen-lockfile
+    cd e2e && bunx tsc --noEmit
     cd e2e && bunx playwright test
 
 # Download and splice attributed real dashcam data under ignored data/footage/.

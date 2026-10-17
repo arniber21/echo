@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import json
 import logging
 import shutil
 from collections.abc import Awaitable, Callable
@@ -134,7 +135,26 @@ def create_app(
 
     @app.get("/api/cases", response_model=list[Case])
     async def cases():
-        return store.list_cases()
+        items = store.list_cases()
+        default_id = workspace_case_id()
+        return [
+            case for case in items if default_id == "demo" or case.case_id != "demo"
+        ]
+
+    def workspace_case_id() -> str:
+        """A local preference selects the real case opened on the workspace home."""
+        try:
+            value = json.loads((config.data_dir / "workspace.json").read_text())
+            case_id = value.get("case_id")
+            if isinstance(case_id, str) and store.get_case(case_id) is not None:
+                return case_id
+        except (OSError, ValueError, TypeError, AttributeError):
+            pass
+        return "demo"
+
+    @app.get("/api/workspace", response_model=Case)
+    async def workspace():
+        return require_case(workspace_case_id())
 
     @app.get("/api/cases/{case_id}", response_model=Case)
     async def get_case(case_id: str):
@@ -345,6 +365,3 @@ def create_app(
         )
 
     return app
-
-
-app = create_app()

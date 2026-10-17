@@ -30,7 +30,9 @@ function submit() {
         ? 'Keep the same case. Your existing reconstruction stays available until you update it.'
         : 'Start with one video, or bring several sources together. You can add more evidence later.'
     "
-    ><UButton icon="i-lucide-plus" color="neutral" variant="outline">New case</UButton
+    ><UButton :disabled="busy" icon="i-lucide-plus" color="neutral" variant="outline">{{
+      append ? 'Add evidence' : 'New case'
+    }}</UButton
     ><template #body
       ><div class="upload-form">
         <UFormField v-if="!append" label="Case title"

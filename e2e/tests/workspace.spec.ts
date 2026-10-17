@@ -1,15 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
 import { fileURLToPath } from 'node:url'
+import type { Case } from '../../frontend/app/types/generated'
 
-interface SourceReference { source_id: string; source_start: number | null; source_end: number | null }
-interface EvidenceEvent extends SourceReference { event_id: string; title: string; source_type: 'video' | 'audio' | 'photo'; case_best: number; supports: string[] }
-interface DemoCase { case_id: string; title: string; media_files: Array<{ source_id: string; filename: string }>; analysis: { events: EvidenceEvent[]; contradictions: Array<{ title: string; source_refs: SourceReference[] }> } }
-
-async function openDemo(page: Page): Promise<DemoCase> {
+async function openDemo(page: Page): Promise<Case> {
   const response = await page.request.get('/api/cases/demo')
   expect(response.ok()).toBeTruthy()
-  const demo: DemoCase = await response.json()
-  await page.goto('/')
+  const demo: Case = await response.json()
+  await page.goto('/?case=demo')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(demo.title)
   await expect(page.getByText('Synthetic demo', { exact: true })).toBeVisible()
   return demo
@@ -23,6 +20,7 @@ test('pre-analyzed demo traces events to playable evidence and both sides of a c
   const consoleErrors: string[] = []
   page.on('pageerror', error => consoleErrors.push(error.message))
   const demo = await openDemo(page)
+  if (!demo.analysis) throw new Error('The demo must include analysis')
   await expect(page.locator('.timeline-row')).toHaveCount(demo.analysis.events.length)
   for (const event of demo.analysis.events) {
     expect(demo.media_files.some(source => source.source_id === event.source_id)).toBeTruthy()
@@ -30,9 +28,9 @@ test('pre-analyzed demo traces events to playable evidence and both sides of a c
   const impact = demo.analysis.events.find(event => event.event_id === 'impact')
   const testimony = demo.analysis.events.find(event => event.source_type === 'audio')
   if (!impact || !testimony || impact.source_start === null || testimony.source_start === null) throw new Error('Demo fixture lacks seekable events')
-  await page.getByRole('button', { name: new RegExp(impact.title) }).click()
+  await page.locator('.timeline-panel').getByRole('button', { name: new RegExp(impact.title) }).click()
   await expectSeek(page, 'video', impact.source_start)
-  await page.getByRole('button', { name: new RegExp(testimony.title) }).click()
+  await page.getByRole('region', { name: 'Unified timeline', exact: true }).getByRole('button', { name: testimony.title, exact: true }).click()
   await expectSeek(page, 'audio', testimony.source_start)
   expect(testimony.source_start).not.toEqual(testimony.case_best)
   await page.getByRole('tab', { name: /Missing evidence/ }).click()
@@ -100,4 +98,56 @@ test('demo loads without external requests and fits a narrow viewport', async ({
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy()
   await page.screenshot({ path: 'test-results/workspace-mobile.png', fullPage: true })
   expect(external).toEqual([])
+})
+
+test('evidence accumulates in one case while saved recollection and old timelines remain inspectable', async ({ page }) => {
+  await openDemo(page)
+  await page.getByRole('button', { name: 'New case', exact: true }).click()
+  await page.getByLabel('Choose evidence files').setInputFiles(fileURLToPath(new URL('../../demo/media/demo-video.mp4', import.meta.url)))
+  await page.getByRole('button', { name: /Create case with 1 file/ }).click()
+  await page.getByLabel('Analysis mode').selectOption('mock')
+  await page.getByRole('button', { name: /Analyze evidence/ }).click()
+  await expect(page.getByRole('button', { name: 'Re-analyze', exact: true })).toBeEnabled()
+  await expect(page.locator('.timeline-row')).toHaveCount(1)
+  const caseId = new URL(page.url()).searchParams.get('case')
+  if (!caseId) throw new Error('Created case must have a stable URL')
+  const initial: Case = await (await page.request.get(`/api/cases/${caseId}`)).json()
+  expect(initial.memory?.revision).toBe(1)
+  await expect(page.getByRole('region', { name: 'Working account', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Add evidence', exact: true }).click()
+  await page.getByLabel('Choose evidence files').setInputFiles(fileURLToPath(new URL('../../demo/media/demo-photo-front.jpg', import.meta.url)))
+  await page.getByRole('button', { name: 'Add 1 file', exact: true }).click()
+  await expect(page.getByText(/1 new source · reconstruction needs update/)).toBeVisible()
+  await expect(page.locator('.timeline-row')).toHaveCount(1)
+  const pending: Case = await (await page.request.get(`/api/cases/${caseId}`)).json()
+  expect(pending.evidence_revision).toBe(2)
+  expect(pending.memory).toEqual(initial.memory)
+  await page.getByRole('button', { name: 'Update reconstruction', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Re-analyze', exact: true })).toBeEnabled()
+  await expect(page.locator('.timeline-row')).toHaveCount(2)
+  const updated: Case = await (await page.request.get(`/api/cases/${caseId}`)).json()
+  expect(updated.memory?.revision).toBe(2)
+  expect(updated.analysis_history).toHaveLength(1)
+  await page.getByLabel('Reconstruction version', { exact: true }).selectOption('1')
+  await expect(page.locator('.timeline-row')).toHaveCount(1)
+  await expect(page.getByRole('region', { name: 'Working account', exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Return to current', exact: true }).click()
+  await expect(page.locator('.timeline-row')).toHaveCount(2)
+  await page.reload()
+  await expect(page.locator('.timeline-row')).toHaveCount(2)
+  await expect(page.getByText('Saved at revision 2', { exact: true })).toBeVisible()
+})
+
+test('the configured real workspace opens its saved reconstruction by default', async ({ page }) => {
+  const incident: Case = await (await page.request.get('/api/workspace')).json()
+  test.skip(incident.case_id === 'demo', 'No local real-footage workspace has been configured')
+  await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(incident.title)
+  await expect(page.getByText('Synthetic demo', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Working account', exact: true })).toBeVisible()
+  const event = incident.analysis?.events.find(item => item.source_type === 'video' && item.source_start !== null)
+  if (!event || event.source_start === null) throw new Error('Real workspace must contain a seekable video event')
+  await page.getByRole('region', { name: 'Unified timeline', exact: true }).getByRole('button', { name: event.title, exact: true }).click()
+  await expectSeek(page, 'video', event.source_start)
+  await page.screenshot({ path: 'test-results/real-workspace.png', fullPage: true })
 })
