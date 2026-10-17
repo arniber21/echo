@@ -1,0 +1,25 @@
+docs/video-viewpoints.md
+  s_4d6956e576b617::t_06f727d8e9d507 1-32
+README.md
+  s_4d6956e576b617::t_06f727d8e9d507 77-81,124-127
+  s_4d6956e576b617::t_733728f3227165 128
+e2e/tests/answers.spec.ts
+  s_4d6956e576b617::t_33ea793035cc0d 170-205,207-249,251-261
+  s_4d6956e576b617::t_7bde2fed87ef13 169,206,262
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9c66c5878cbe215e4f0b11cad0a9569a2b683e58",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
