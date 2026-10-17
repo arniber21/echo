@@ -58,9 +58,9 @@ const emit = defineEmits<{ select: [reference: SourceRef] }>()
 .quick-scan {
   margin: 20px 0;
   padding: 18px 20px;
-  border: 1px solid #d9dfcf;
+  border: 1px solid var(--app-border);
   border-radius: 12px;
-  background: #fffefb;
+  background: var(--app-surface);
 }
 .scan-heading {
   display: flex;
@@ -80,7 +80,7 @@ h2 {
 }
 .scan-note {
   margin-top: 4px;
-  color: #606957;
+  color: var(--app-secondary);
   font-size: 13px;
   line-height: 1.6;
 }

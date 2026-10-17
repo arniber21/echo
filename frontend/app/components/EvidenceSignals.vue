@@ -120,9 +120,9 @@ const statusLabel = computed(() => {
   min-width: 0;
   margin-top: 22px;
   padding: 20px;
-  border: 1px solid #d9dfcf;
+  border: 1px solid var(--app-border);
   border-radius: 12px;
-  background: #fffefb;
+  background: var(--app-surface);
 }
 .signals-heading {
   display: flex;
@@ -137,7 +137,7 @@ h2 {
 }
 .signals-note {
   margin-top: 8px;
-  color: #606957;
+  color: var(--app-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -153,7 +153,7 @@ summary {
 }
 summary span {
   margin-left: 6px;
-  color: #606957;
+  color: var(--app-secondary);
   font-variant-numeric: tabular-nums;
   font-weight: 400;
 }
@@ -174,7 +174,7 @@ h3 {
   flex-wrap: wrap;
   gap: 6px 20px;
   margin: 8px 0;
-  color: #606957;
+  color: var(--app-secondary);
   font-size: 13px;
 }
 .probabilities div {
@@ -182,7 +182,7 @@ h3 {
   gap: 8px;
 }
 dd {
-  color: #30372d;
+  color: var(--app-text);
   font-variant-numeric: tabular-nums;
 }
 .frame-details {
