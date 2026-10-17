@@ -76,3 +76,7 @@ export interface Job {
   progress: number
   error: string | null
 }
+
+export interface AnalyzeRequest {
+  mode: "auto" | "mock" | "live"
+}

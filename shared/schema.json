@@ -67,6 +67,8 @@
       "additionalProperties": false,
       "properties": {
         "text": {
+          "maxLength": 8000,
+          "minLength": 1,
           "title": "Text",
           "type": "string"
         },
@@ -90,6 +92,8 @@
       "additionalProperties": false,
       "properties": {
         "source_id": {
+          "maxLength": 100,
+          "minLength": 1,
           "title": "Source Id",
           "type": "string"
         },
@@ -120,14 +124,20 @@
           "title": "Source End"
         },
         "event_id": {
+          "maxLength": 100,
+          "minLength": 1,
           "title": "Event Id",
           "type": "string"
         },
         "title": {
+          "maxLength": 240,
+          "minLength": 1,
           "title": "Title",
           "type": "string"
         },
         "description": {
+          "maxLength": 12000,
+          "minLength": 1,
           "title": "Description",
           "type": "string"
         },
@@ -163,6 +173,8 @@
           "title": "Case Max"
         },
         "alignment_basis": {
+          "maxLength": 4000,
+          "minLength": 1,
           "title": "Alignment Basis",
           "type": "string"
         },
@@ -224,10 +236,14 @@
           "type": "string"
         },
         "title": {
+          "maxLength": 240,
+          "minLength": 1,
           "title": "Title",
           "type": "string"
         },
         "description": {
+          "maxLength": 12000,
+          "minLength": 1,
           "title": "Description",
           "type": "string"
         },
@@ -251,6 +267,8 @@
       "additionalProperties": false,
       "properties": {
         "source_id": {
+          "maxLength": 100,
+          "minLength": 1,
           "title": "Source Id",
           "type": "string"
         },
@@ -321,6 +339,8 @@
       "additionalProperties": false,
       "properties": {
         "source_id": {
+          "maxLength": 100,
+          "minLength": 1,
           "title": "Source Id",
           "type": "string"
         },
@@ -374,6 +394,8 @@
           "type": "string"
         },
         "title": {
+          "maxLength": 240,
+          "minLength": 1,
           "title": "Title",
           "type": "string"
         },
@@ -471,6 +493,23 @@
         "progress"
       ],
       "title": "Job",
+      "type": "object"
+    },
+    "AnalyzeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "mock",
+            "live"
+          ],
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "title": "AnalyzeRequest",
       "type": "object"
     }
   }

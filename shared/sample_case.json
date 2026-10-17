@@ -1,6 +1,6 @@
 {
   "case_id": "demo",
-  "title": "Junction contact · synthetic demo",
+  "title": "Junction contact \u00b7 synthetic demo",
   "created_at": "2026-10-17T12:00:00Z",
   "media_files": [
     {
@@ -22,7 +22,7 @@
       "url": "/api/media/demo-audio",
       "sha256": "synthetic-demo",
       "size_bytes": 0,
-      "duration_seconds": 30.0,
+      "duration_seconds": 21.055,
       "captured_at": null
     },
     {
@@ -58,9 +58,9 @@
         "title": "Vehicle approaches the junction",
         "description": "The synthetic dashcam sequence shows the vehicle moving toward the junction.",
         "source_type": "video",
-        "case_min": 5.5,
-        "case_best": 6.0,
-        "case_max": 6.5,
+        "case_min": 3.5,
+        "case_best": 4,
+        "case_max": 4.5,
         "alignment_basis": "Directly timed on the video clock.",
         "alignment_confidence": 0.88,
         "confidence": 0.88,
@@ -88,8 +88,8 @@
       },
       {
         "source_id": "demo-audio",
-        "source_start": 11.0,
-        "source_end": 16.0,
+        "source_start": 6,
+        "source_end": 12,
         "event_id": "testimony",
         "title": "Witness recalls a green signal",
         "description": "The synthetic voice memo states that the traffic signal was green before contact. This is testimony, not a verified observation.",
@@ -166,8 +166,8 @@
           },
           {
             "source_id": "demo-audio",
-            "source_start": 11.0,
-            "source_end": 16.0
+            "source_start": 6,
+            "source_end": 12
           }
         ]
       },
@@ -231,8 +231,8 @@
           },
           {
             "source_id": "demo-audio",
-            "source_start": 11.0,
-            "source_end": 16.0
+            "source_start": 6,
+            "source_end": 12
           }
         ]
       }
