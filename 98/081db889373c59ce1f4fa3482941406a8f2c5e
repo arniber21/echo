@@ -1,0 +1,37 @@
+frontend/app/assets/css/main.css
+  s_4d6956e576b617::t_a2217e81c16260 1538-1687
+frontend/app/components/IncidentTimeline.vue
+  s_4d6956e576b617::t_23fddd481de578 7,12
+frontend/app/components/ReconstructionHistory.vue
+  s_4d6956e576b617::t_9e06f9ac172bed 1-90
+frontend/app/components/UnifiedTimeline.vue
+  s_4d6956e576b617::t_0dad9605823db7 9-10,13,105-109
+frontend/app/components/UploadCase.vue
+  s_4d6956e576b617::t_ee39bf0a811e67 2,8-10,27-32,36,76-77
+frontend/app/composables/useCaseWorkspace.ts
+  s_4d6956e576b617::t_011dea19d4989a 57-71,102
+frontend/app/composables/useReconstructionHistory.ts
+  s_4d6956e576b617::t_e1df4e265aa37c 1-24
+frontend/app/pages/index.vue
+  s_4d6956e576b617::t_d3f12050c40346 4-11,23,44-52,101-106,113-114,119-126,134,143-144,168-173,175-176,178-179,183-189,228,230,235-236
+frontend/app/utils/revisions.ts
+  s_4d6956e576b617::t_565f44a7649b99 1-80
+frontend/tests/revisions.test.ts
+  s_4d6956e576b617::t_d33b1117cbce69 1-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "98081db889373c59ce1f4fa3482941406a8f2c5e",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
