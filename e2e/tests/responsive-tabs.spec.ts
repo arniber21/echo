@@ -5,7 +5,7 @@ test("all analysis tabs remain visible and operable at 320 pixels", async ({
 }) => {
   await page.setViewportSize({ width: 320, height: 844 });
   await page.goto("/?case=demo");
-  const tabs = page.getByRole("tablist", { name: "Analysis details" });
+  const tabs = page.locator(".insights-panel").getByRole("tablist");
   await tabs.scrollIntoViewIfNeeded();
   for (const name of ["Case summary", "Missing evidence", "Contradictions"]) {
     await expect(tabs.getByRole("tab", { name, exact: false })).toBeInViewport({
