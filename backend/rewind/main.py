@@ -239,8 +239,15 @@ def create_app(
             progress=0,
         )
         store.save_job(job)
+        requested_mode = request.mode if request else "auto"
+        # An operator-forced offline session must never transfer evidence to Gemini.
+        effective_mode = requested_mode
+        if config.analysis_mode == "mock":
+            effective_mode = "mock"
+        elif requested_mode == "auto":
+            effective_mode = config.analysis_mode
         task = asyncio.create_task(
-            run_analysis(job, case, request.mode if request else config.analysis_mode)
+            run_analysis(job, case, effective_mode)
         )
         tasks.add(task)
         task.add_done_callback(tasks.discard)

@@ -230,3 +230,43 @@ def test_audio_detected_from_bytes_instead_of_filename(tmp_path):
         assert source["source_type"] == "audio"
         assert source["mime_type"] == "audio/wav"
         assert source["duration_seconds"] == pytest.approx(0.1)
+
+
+@pytest.mark.parametrize(
+    ("configured_mode", "requested_mode", "expected_mode"),
+    [
+        ("mock", "auto", "mock"),
+        ("mock", "live", "mock"),
+        ("auto", "mock", "mock"),
+        ("live", "auto", "live"),
+        ("auto", "live", "live"),
+    ],
+)
+def test_operator_mock_mode_prevents_live_requests(
+    tmp_path, monkeypatch, configured_mode, requested_mode, expected_mode
+):
+    received_modes = []
+
+    async def capture_analysis(case, paths, progress, *, settings):
+        assert settings.api_key == "configured-test-key"
+        received_modes.append(settings.mode)
+        return Analysis(events=[], summary=[], mode="mock")
+
+    monkeypatch.setattr("rewind.analysis.analyze", capture_analysis)
+    app = create_app(settings(
+        tmp_path, analysis_mode=configured_mode, gemini_api_key="configured-test-key"
+    ))
+    with TestClient(app) as client:
+        started = client.post("/api/cases/demo/analyze", json={"mode": requested_mode})
+        assert started.status_code == 202
+
+        async def wait_for_job():
+            for _ in range(100):
+                job = app.state.store.get_job(started.json()["job_id"])
+                if job.status in ("completed", "failed"):
+                    return job
+                await asyncio.sleep(0.01)
+            pytest.fail("Background job did not finish")
+
+        assert client.portal.call(wait_for_job).status == "completed"
+    assert received_modes == [expected_mode]
