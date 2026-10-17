@@ -124,6 +124,50 @@ def test_cache_remaps_ids_and_uses_content_and_role(case, tmp_path, monkeypatch)
     assert len(FakeProvider.calls) == 8
 
 
+def test_audio_input_is_isolated_and_new_policy_bypasses_old_extraction(
+    case, tmp_path, monkeypatch
+):
+    """Routing/cache regression only; simulated output cannot prove acoustic accuracy."""
+    from rewind.analysis.prompts import PROMPT_VERSION
+
+    requests = []
+
+    class RecordingProvider(FakeProvider):
+        async def generate(self, prompt, schema, **kwargs):
+            if schema is Extraction:
+                requests.append(
+                    (kwargs["path"].read_bytes(), kwargs["mime_type"], prompt)
+                )
+            return await super().generate(prompt, schema, **kwargs)
+
+    FakeProvider.calls = []
+    monkeypatch.setattr(pipeline, "GeminiProvider", RecordingProvider)
+    audio = next(
+        source for source in case.media_files if source.source_type.value == "audio"
+    )
+    current = case.model_copy(update={"media_files": [audio], "analysis": None})
+    path = tmp_path / "audio.m4a"
+    path.write_bytes(b"the audio source bytes only")
+    settings = AnalysisSettings(
+        api_key="test", mode="live", cache_dir=tmp_path / "cache"
+    )
+    monkeypatch.setattr(pipeline, "PROMPT_VERSION", "rewind-evidence-v1")
+    asyncio.run(
+        analyze(current, {audio.source_id: path}, AsyncMock(), settings=settings)
+    )
+    monkeypatch.setattr(pipeline, "PROMPT_VERSION", PROMPT_VERSION)
+    asyncio.run(
+        analyze(current, {audio.source_id: path}, AsyncMock(), settings=settings)
+    )
+    assert len(requests) == 2
+    assert all(content == b"the audio source bytes only" for content, _, _ in requests)
+    assert all(mime == "audio/mp4" for _, mime, _ in requests)
+    assert "This input is AUDIO ONLY" in requests[-1][2]
+    assert "For video," not in requests[-1][2]
+    assert "For photos," not in requests[-1][2]
+    assert PROMPT_VERSION != "rewind-evidence-v1"
+
+
 def test_incremental_evidence_reuses_prior_extraction_and_resynthesizes(
     case, tmp_path, monkeypatch
 ):

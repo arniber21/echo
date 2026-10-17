@@ -1,6 +1,6 @@
 """Versioned evidence policy; changes invalidate cached model outputs."""
 
-PROMPT_VERSION = "rewind-evidence-v1"
+PROMPT_VERSION = "rewind-evidence-v2-modality-grounding"
 SYNTHESIS_PROMPT_VERSION = "rewind-synthesis-v7"
 
 POLICY = """You organize evidence, never determine fault, responsibility, liability, or guilt.
@@ -12,17 +12,36 @@ inference, and testimony (what someone alleges, not established fact). Be concis
 
 
 def extraction_prompt(source_type: str, duration: float | None) -> str:
+    modality_policy = {
+        "video": """Describe only directly observable actions, scene changes and audible cues in this video.
+Use exact source times. Separate what the camera shows from what a speaker alleges.
+Do not invent off-camera actions or the physical cause of a sound.
+""",
+        "audio": """This input is AUDIO ONLY. You cannot see a camera view, people, vehicles, road,
+pavement, objects, damage, movement or any other visual scene. Never describe visual
+observations or infer camera motion, camera direction or a camera dropping from sounds.
+Describe only what is actually audible, at this audio file's own source times.
+Transcribe or accurately paraphrase relevant intelligible speech as testimony, not observed fact.
+Do not guess words or language from unclear speech. Preserve original words when intelligible;
+otherwise describe the vocalization as unintelligible and explain the transcription limit.
+Non-speech sounds may be observations, but distinguish a sound from its unverified cause:
+a thud does not by itself establish a collision, a dropped camera or a particular vehicle.
+An empty events list is valid when nothing relevant can be identified reliably.
+""",
+        "photo": """Describe only visible evidence and uncertainties in this still photo.
+source_start and source_end must both be null. Do not infer capture time from the picture.
+Do not invent movement, sounds, speech, a sequence of actions or an unseen incident.
+""",
+    }[source_type]
     return (
         POLICY
         + f"""
 Extract identifiable events from this {source_type} file only.
 The file duration in seconds is {duration!r}; do not exceed it when known.
 Use numeric seconds measured from THIS file's start, never a merged timeline.
-For video, describe observable actions, scene changes, and audible cues with exact source times.
-For audio, transcribe or accurately paraphrase each relevant statement, identifying it as testimony;
-independent non-speech sounds may be observations. Preserve the audio file's own clock.
-For photos, describe visible evidence and uncertainties; source_start/source_end must both be null.
-Do not infer photo capture time from the picture. Do not assume an incident occurred.
+"""
+        + modality_policy
+        + """Do not assume an incident occurred. Report modality and content limitations.
 Timed events require both source_start and source_end, with 0 <= start <= end.
 Return events and limitations as the specified JSON object, without Markdown.
 """
