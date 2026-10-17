@@ -58,6 +58,14 @@ export interface ClaimAssessment {
   overclaim_probability: number
 }
 
+export interface DetailedViewReview {
+  relationship: "same_incident_different_view" | "same_footage" | "different_incident" | "uncertain"
+  confidence: number
+  basis: string
+  matches: Array<ViewEventMatch>
+  model: string
+}
+
 export interface Event {
   source_id: string
   source_start: number | null
@@ -169,6 +177,7 @@ export interface VideoRelationship {
   different_view_probability: number
   basis: string
   matches: Array<ViewEventMatch>
+  detailed_review: DetailedViewReview | null
 }
 
 export interface ViewEventMatch {
@@ -200,7 +209,7 @@ export interface Job {
   job_id: string
   case_id: string
   status: "queued" | "running" | "completed" | "failed"
-  stage: "uploading" | "classifying_evidence" | "checking_claims" | "analyzing_video" | "analyzing_audio" | "analyzing_photos" | "synthesizing" | "completed" | "failed"
+  stage: "uploading" | "classifying_evidence" | "checking_claims" | "matching_views" | "analyzing_video" | "analyzing_audio" | "analyzing_photos" | "synthesizing" | "completed" | "failed"
   progress: number
   error: string | null
 }

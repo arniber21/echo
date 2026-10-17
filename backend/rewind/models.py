@@ -239,6 +239,7 @@ class Job(Contract):
         "uploading",
         "classifying_evidence",
         "checking_claims",
+        "matching_views",
         "analyzing_video",
         "analyzing_audio",
         "analyzing_photos",

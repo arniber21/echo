@@ -328,6 +328,53 @@
       "title": "ClaimAssessment",
       "type": "object"
     },
+    "DetailedViewReview": {
+      "additionalProperties": false,
+      "properties": {
+        "relationship": {
+          "enum": [
+            "same_incident_different_view",
+            "same_footage",
+            "different_incident",
+            "uncertain"
+          ],
+          "title": "Relationship",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "basis": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Basis",
+          "type": "string"
+        },
+        "matches": {
+          "items": {
+            "$ref": "#/$defs/ViewEventMatch"
+          },
+          "maxItems": 24,
+          "title": "Matches",
+          "type": "array"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relationship",
+        "confidence",
+        "basis",
+        "model"
+      ],
+      "title": "DetailedViewReview",
+      "type": "object"
+    },
     "Event": {
       "additionalProperties": false,
       "properties": {
@@ -998,6 +1045,17 @@
           },
           "title": "Matches",
           "type": "array"
+        },
+        "detailed_review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DetailedViewReview"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1210,6 +1268,7 @@
             "uploading",
             "classifying_evidence",
             "checking_claims",
+            "matching_views",
             "analyzing_video",
             "analyzing_audio",
             "analyzing_photos",

@@ -565,9 +565,18 @@ def test_failed_batch_preserves_other_batch_and_source_timestamps(
     def handle(request):
         body = multipart_body(request)
         calls.append(body)
-        # First batch fails without retry on a contract error; the other batch
-        # still returns independently and remains useful to the application.
-        if body["assets"]["rewind-batch-asset-0"] and len(calls) == 1:
+        # Identify the early-timestamp batch by content, not scheduler order.
+        message = BytesParser(policy=policy.default).parsebytes(
+            ("Content-Type: " + request.headers["content-type"] + "\r\n\r\n").encode()
+            + request.content
+        )
+        first_image = next(
+            part.get_payload(decode=True)
+            for part in message.iter_parts()
+            if part.get_param("name", header="content-disposition") == "frame-0"
+        )
+        early_batch = Image.open(io.BytesIO(first_image)).getpixel((140, 140))[0] < 40
+        if early_batch:
             return httpx.Response(422, json={"error": "bad batch"})
         return httpx.Response(200, json=answer_body(body["questions"]))
 
@@ -646,6 +655,154 @@ def test_request_deadline_yields_partial_results_without_waiting_for_long_provid
         )
         assert results == [None, None] and usage == 0
         assert deadlines == [20]
+        await service.close()
+
+    asyncio.run(run())
+
+
+def test_answer_claim_checks_include_only_cited_reported_context(tmp_path):
+    seen = []
+
+    def handle(request):
+        body = json.loads(request.content)
+        seen.append(body["state"])
+        return httpx.Response(200, json=answer_body(body["questions"]))
+
+    service = client(tmp_path, handle)
+    report = EvidenceIntelligence(
+        model="jev-1.14.0",
+        version="test",
+        status="complete",
+        sources=[SourceIntelligence(source_id="a")],
+    )
+    analysis = Analysis(
+        events=[],
+        summary=[
+            Claim(
+                text="The user reports an opposite camera viewpoint.",
+                answer_refs=["answer-a"],
+            ),
+            Claim(text="A vehicle is visible.", source_refs=[SourceRef(source_id="a")]),
+        ],
+    )
+    records = [
+        {
+            "source_id": "a",
+            "events": [],
+            "case_answers": [
+                {
+                    "answer_id": "answer-a",
+                    "text": "I recorded from the opposite corner",
+                    "respondent": "Witness",
+                },
+                {"answer_id": "answer-b", "text": "Uncited context"},
+            ],
+            "video_relationships": [{"unverified": "same incident"}],
+        }
+    ]
+
+    async def run():
+        result = await service.assess_analysis(analysis, records, report)
+        assert len(result.claims) == 2
+        await service.close()
+
+    asyncio.run(run())
+    text_state = next(state for state in seen if "extraction" in state)
+    assert "case_answers" not in text_state["extraction"]
+    claim_states = [state for state in seen if "claim" in state]
+    assert claim_states[0]["cited_extractions"] == []
+    assert [
+        answer["answer_id"] for answer in claim_states[0]["cited_case_answers"]
+    ] == ["answer-a"]
+    assert claim_states[1]["cited_case_answers"] == []
+    assert "case_answers" not in claim_states[1]["cited_extractions"][0]
+    assert "video_relationships" not in claim_states[1]["cited_extractions"][0]
+
+
+@pytest.mark.parametrize("same_moment", [0.1, 0.95])
+def test_cross_view_candidate_events_require_a_distinctive_shared_action(
+    tmp_path, same_moment
+):
+    from rewind.intelligence.models import (
+        DetailedViewReview,
+        VideoRelationship,
+        ViewEventMatch,
+    )
+
+    def handle(request):
+        body = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "model": "jev-1.14.0",
+                "answers": {
+                    key: {"type": "noul", "noul": same_moment}
+                    for key in body["questions"]
+                },
+                "usage": {"input_tokens": 80, "output_tokens": 2},
+            },
+        )
+
+    service = client(tmp_path, handle)
+    report = EvidenceIntelligence(
+        model="jev-1.14.0",
+        version="test",
+        status="complete",
+        video_relationships=[
+            VideoRelationship(
+                source_a="a",
+                source_b="b",
+                relationship="uncertain",
+                confidence=0,
+                same_incident_probability=0.6,
+                different_view_probability=0.6,
+                basis="Initial screen",
+                detailed_review=DetailedViewReview(
+                    relationship="same_incident_different_view",
+                    confidence=0.9,
+                    basis="Provisional shared scene",
+                    model="test",
+                    matches=[
+                        ViewEventMatch(event_a="a0", event_b="b0", probability=0.9)
+                    ],
+                ),
+            )
+        ],
+    )
+    records = [
+        {
+            "events": [
+                {
+                    "event_id": "a0",
+                    "title": "Drive",
+                    "description": "A car travels on a road",
+                    "evidence_type": "observation",
+                }
+            ]
+        },
+        {
+            "events": [
+                {
+                    "event_id": "b0",
+                    "title": "Drive",
+                    "description": "A car travels on a road",
+                    "evidence_type": "observation",
+                }
+            ]
+        },
+    ]
+
+    async def run():
+        result = await service.confirm_view_event_matches(records, report)
+        assert len(result.video_relationships[0].detailed_review.matches) == (
+            1 if same_moment >= 0.85 else 0
+        )
+        assert (
+            result.video_relationships[0].detailed_review.relationship
+            == "same_incident_different_view"
+        )
+        assert len(report.video_relationships[0].detailed_review.matches) == 1
+        assert result.input_tokens == 80
         await service.close()
 
     asyncio.run(run())

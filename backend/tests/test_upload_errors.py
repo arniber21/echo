@@ -3,7 +3,6 @@ import io
 
 import pytest
 from fastapi import HTTPException, UploadFile
-
 from rewind.config import Settings
 from rewind.uploads import ingest
 

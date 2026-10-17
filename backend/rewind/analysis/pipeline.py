@@ -104,7 +104,16 @@ async def analyze(
                             update={"source_id": real_ids[source.source_id]}
                         )
                         for source in report.sources
-                    ]
+                    ],
+                    "video_relationships": [
+                        relationship.model_copy(
+                            update={
+                                "source_a": real_ids[relationship.source_a],
+                                "source_b": real_ids[relationship.source_b],
+                            }
+                        )
+                        for relationship in report.video_relationships
+                    ],
                 }
             )
             await intelligence_sink(mapped)
@@ -176,7 +185,6 @@ async def analyze(
                 )
                 await asyncio.to_thread(cache.write, key, extracted)
             extractions[media.source_id] = extracted
-        await progress("synthesizing", 80)
         records = []
         for source in canonical:
             events = []
@@ -203,6 +211,59 @@ async def analyze(
                     "limitations": extractions[source.source_id].limitations,
                 }
             )
+        if (
+            intelligence_service is not None
+            and intelligence_report is not None
+            and sum(source.source_type.value == "video" for source in canonical) > 1
+        ):
+            await progress("matching_views", 75)
+            try:
+                intelligence_report = await intelligence_service.compare_views(
+                    canonical, paths, records, intelligence_report
+                )
+            except Exception:  # noqa: BLE001 - optional comparisons cannot fail reconstruction
+                logger.warning("Jev video comparison unavailable")
+                intelligence_report = intelligence_report.model_copy(
+                    update={
+                        "diagnostics": [
+                            *intelligence_report.diagnostics,
+                            "video_comparison_unavailable",
+                        ],
+                        "status": "partial"
+                        if intelligence_report.sources
+                        else "unavailable",
+                    }
+                )
+            if any(
+                pair.relationship == "uncertain"
+                for pair in intelligence_report.video_relationships
+            ):
+                from .view_review import review_uncertain_views
+
+                intelligence_report = await review_uncertain_views(
+                    get_provider(),
+                    canonical,
+                    paths,
+                    records,
+                    intelligence_report,
+                    cache,
+                    settings.model,
+                )
+                intelligence_report = (
+                    await intelligence_service.confirm_view_event_matches(
+                        records, intelligence_report
+                    )
+                )
+            await publish_intelligence(intelligence_report)
+        records[0]["video_relationships"] = (
+            [
+                relationship.model_dump(mode="json")
+                for relationship in intelligence_report.video_relationships
+            ]
+            if intelligence_report
+            else []
+        )
+        await progress("synthesizing", 80)
         # Answers influence synthesis only; media extraction remains immutable/cacheable.
         records[0]["case_answers"] = [
             answer.model_dump(mode="json") for answer in case.answers

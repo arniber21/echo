@@ -662,3 +662,92 @@ def test_reported_answers_resynthesize_without_reextracting_and_are_untrusted(
     asyncio.run(analyze(case, paths, AsyncMock(), settings=settings))
     assert len(FakeProvider.calls) == 4
     assert FakeProvider.calls[-1] == ("Analysis", None)
+
+
+@pytest.mark.parametrize("comparison_fails", [False, True])
+def test_video_relationships_reach_synthesis_and_remap_to_original_sources(
+    case, tmp_path, monkeypatch, comparison_fails
+):
+    from rewind.intelligence.models import (
+        EvidenceIntelligence,
+        SourceIntelligence,
+        VideoRelationship,
+    )
+
+    class Classifier:
+        def __init__(self, **kwargs):
+            pass
+
+        async def scan_sources(self, sources, paths):
+            return EvidenceIntelligence(
+                model="jev-1.14.0",
+                version="test",
+                status="complete",
+                sources=[
+                    SourceIntelligence(source_id=source.source_id) for source in sources
+                ],
+            )
+
+        async def compare_views(self, sources, paths, records, report):
+            if comparison_fails:
+                raise RuntimeError("private-provider-error")
+            assert all(record["source_id"].startswith("source-") for record in records)
+            report.video_relationships = [
+                VideoRelationship(
+                    source_a=sources[0].source_id,
+                    source_b=sources[1].source_id,
+                    relationship="same_incident_different_view",
+                    confidence=0.9,
+                    same_incident_probability=0.95,
+                    different_view_probability=0.9,
+                    basis="Mocked relationship, no synchronization",
+                )
+            ]
+            return report
+
+        async def assess_analysis(self, analysis, records, report):
+            assert len(records[0]["video_relationships"]) == (
+                0 if comparison_fails else 1
+            )
+            return report
+
+        async def close(self):
+            pass
+
+    monkeypatch.setattr("rewind.intelligence.service.JevIntelligence", Classifier)
+    monkeypatch.setattr(pipeline, "GeminiProvider", FakeProvider)
+    video = case.media_files[0]
+    second = video.model_copy(update={"source_id": "second-camera"})
+    case = case.model_copy(update={"media_files": [video, second], "analysis": None})
+    paths = {}
+    for source, data in [(video, b"first camera"), (second, b"second camera")]:
+        path = tmp_path / source.source_id
+        path.write_bytes(data)
+        paths[source.source_id] = path
+    sink, progress = AsyncMock(), AsyncMock()
+    result = asyncio.run(
+        analyze(
+            case,
+            paths,
+            progress,
+            settings=AnalysisSettings(
+                api_key="test",
+                typesafe_api_key="test",
+                mode="live",
+                cache_dir=tmp_path / "cache",
+            ),
+            intelligence_sink=sink,
+        )
+    )
+    assert {event.source_id for event in result.events} == {
+        video.source_id,
+        second.source_id,
+    }
+    final = sink.await_args_list[-1].args[0]
+    if comparison_fails:
+        assert "video_comparison_unavailable" in final.diagnostics
+    else:
+        pair = final.video_relationships[0]
+        assert {pair.source_a, pair.source_b} == {video.source_id, second.source_id}
+        assert pair.matches == []
+    assert "matching_views" in [call.args[0] for call in progress.await_args_list]
