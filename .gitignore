@@ -15,3 +15,4 @@ test-results/
 .cocoindex_code/
 *.pyc
 .DS_Store
+.devbox/
