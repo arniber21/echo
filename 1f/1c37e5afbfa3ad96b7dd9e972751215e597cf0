@@ -1,0 +1,21 @@
+frontend/app/assets/css/main.css
+  s_4d6956e576b617::t_2bc862a8d874ed 4,57,79,91,129,142,195,213,299,332,365,378,484,596,601,635-636,640-651,657,659,769,829,1422,1988-2042
+frontend/app/components/AnalysisInsights.vue
+  s_4d6956e576b617::t_9710d436e8275a 3,7-12,23-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1f1c37e5afbfa3ad96b7dd9e972751215e597cf0",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
