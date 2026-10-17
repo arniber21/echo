@@ -1,0 +1,27 @@
+.gitignore
+  s_4d6956e576b617::t_096fac0d4f1a75 18
+scripts/dev.py
+  s_4d6956e576b617::t_096fac0d4f1a75 1-80
+scripts/generate_demo.py
+  s_4d6956e576b617::t_dc08ec678c0110 1-122
+justfile
+  s_4d6956e576b617::t_096fac0d4f1a75 1-43
+devbox.json
+  s_4d6956e576b617::t_096fac0d4f1a75 1-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ada28d819782096b8d0d4b4cd9dd453fba3cc16a",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
