@@ -63,6 +63,40 @@
       "title": "Analysis",
       "type": "object"
     },
+    "AnalysisRevision": {
+      "additionalProperties": false,
+      "description": "A previous completed reconstruction and its exact evidence set.",
+      "properties": {
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "media_source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Media Source Ids",
+          "type": "array"
+        },
+        "analysis": {
+          "$ref": "#/$defs/Analysis"
+        }
+      },
+      "required": [
+        "revision",
+        "created_at",
+        "media_source_ids",
+        "analysis"
+      ],
+      "title": "AnalysisRevision",
+      "type": "object"
+    },
     "Claim": {
       "additionalProperties": false,
       "properties": {
@@ -421,6 +455,52 @@
             }
           ],
           "default": null
+        },
+        "evidence_revision": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Evidence Revision",
+          "type": "integer"
+        },
+        "analyzed_revision": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Analyzed Revision"
+        },
+        "analyzed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Analyzed At"
+        },
+        "analyzed_source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Analyzed Source Ids",
+          "type": "array"
+        },
+        "analysis_history": {
+          "items": {
+            "$ref": "#/$defs/AnalysisRevision"
+          },
+          "title": "Analysis History",
+          "type": "array"
         }
       },
       "required": [

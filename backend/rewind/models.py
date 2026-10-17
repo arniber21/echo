@@ -100,12 +100,26 @@ class MediaFile(Contract):
     captured_at: datetime | None = None
 
 
+class AnalysisRevision(Contract):
+    """A previous completed reconstruction and its exact evidence set."""
+
+    revision: int = Field(ge=1)
+    created_at: datetime
+    media_source_ids: list[str]
+    analysis: Analysis
+
+
 class Case(Contract):
     case_id: str
     title: str = Field(min_length=1, max_length=240)
     created_at: datetime
     media_files: list[MediaFile]
     analysis: Analysis | None = None
+    evidence_revision: int = Field(default=1, ge=1)
+    analyzed_revision: int | None = Field(default=None, ge=1)
+    analyzed_at: datetime | None = None
+    analyzed_source_ids: list[str] = Field(default_factory=list)
+    analysis_history: list[AnalysisRevision] = Field(default_factory=list)
 
 
 class Job(Contract):

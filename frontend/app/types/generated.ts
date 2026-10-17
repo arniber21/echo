@@ -9,6 +9,13 @@ export interface Analysis {
   notice: string | null
 }
 
+export interface AnalysisRevision {
+  revision: number
+  created_at: string
+  media_source_ids: Array<string>
+  analysis: Analysis
+}
+
 export interface Claim {
   text: string
   source_refs: Array<SourceRef>
@@ -66,6 +73,11 @@ export interface Case {
   created_at: string
   media_files: Array<MediaFile>
   analysis: Analysis | null
+  evidence_revision: number
+  analyzed_revision: number | null
+  analyzed_at: string | null
+  analyzed_source_ids: Array<string>
+  analysis_history: Array<AnalysisRevision>
 }
 
 export interface Job {
