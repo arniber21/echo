@@ -1,0 +1,57 @@
+frontend/.prettierignore
+  s_4d6956e576b617::t_2c7ca0d3cdbdcd 1-5
+frontend/.prettierrc.json
+  s_4d6956e576b617::t_6ef07b08903ba4 1
+frontend/app/app.config.ts
+  s_4d6956e576b617::t_fd5503c2b331e4 1
+frontend/app/app.vue
+  s_4d6956e576b617::t_e6fc954d3b3093 1-3
+frontend/app/assets/css/main.css
+  s_4d6956e576b617::t_09404734907332 1-1204
+frontend/app/components/AnalysisInsights.vue
+  s_4d6956e576b617::t_011471ced40c03 1-87
+frontend/app/components/EvidenceLibrary.vue
+  s_4d6956e576b617::t_3f7093446bf5bd 1-44
+frontend/app/components/EvidencePlayer.vue
+  s_4d6956e576b617::t_37f5fc1114790f 1-68
+frontend/app/components/IncidentTimeline.vue
+  s_4d6956e576b617::t_adf974f7849d58 1-87
+frontend/app/components/SourceReferences.vue
+  s_4d6956e576b617::t_a8fd1acf6ed01a 1-19
+frontend/app/components/UploadCase.vue
+  s_4d6956e576b617::t_64aed974fcdf65 1-74
+frontend/app/composables/useCaseWorkspace.ts
+  s_4d6956e576b617::t_bb7f97938605b6 1-77
+frontend/app/pages/index.vue
+  s_4d6956e576b617::t_7b1c4689b89e94 1-197
+frontend/app/pages/report.vue
+  s_4d6956e576b617::t_b32f6e8983d5b2 1-155
+frontend/app/utils/timeline.ts
+  s_4d6956e576b617::t_9d8a769e071e50 1-49
+frontend/bun.lock
+  s_4d6956e576b617::t_37d610826d5005 1-1781
+frontend/nuxt.config.ts
+  s_4d6956e576b617::t_f205149a38032b 1-27
+frontend/package.json
+  s_4d6956e576b617::t_3d9612df69b72a 1-25
+frontend/tests/timeline.test.ts
+  s_4d6956e576b617::t_974d9d247bda0a 1-65
+frontend/tsconfig.json
+  s_4d6956e576b617::t_7132a1d77ba45d 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2a46d537680d537c31a953f4453893ea04350948",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
