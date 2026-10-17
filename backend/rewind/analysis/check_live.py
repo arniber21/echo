@@ -5,13 +5,15 @@ import asyncio
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 from dotenv import dotenv_values
 
 from rewind.models import Case
 
-from .pipeline import analyze
+from .pipeline import _digest, analyze
+from .provider import InvalidModelOutput
 from .types import AnalysisSettings
 
 
@@ -23,6 +25,8 @@ async def check(root: Path, fresh: bool) -> None:
     case = Case.model_validate_json((root / "shared/sample_case.json").read_text())
     paths = {media.source_id: root / "demo/media" / media.filename for media in case.media_files}
     for source in case.media_files:
+        source.sha256 = await asyncio.to_thread(_digest, paths[source.source_id])
+        source.size_bytes = paths[source.source_id].stat().st_size
         if source.source_type.value != "photo":
             probe = subprocess.run(
                 ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "json", str(paths[source.source_id])],
@@ -57,7 +61,18 @@ def main() -> None:
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[3])
     parser.add_argument("--fresh", action="store_true", help="Use an isolated empty cache to require live requests")
     options = parser.parse_args()
-    asyncio.run(check(options.root.resolve(), options.fresh))
+    try:
+        asyncio.run(check(options.root.resolve(), options.fresh))
+    except InvalidModelOutput as error:
+        print(f"Live check failed: {error}", file=sys.stderr)
+        raise SystemExit(1) from None
+    except Exception as error:
+        # Provider exceptions may include URLs, request bodies, or credentials.
+        # Report only type and a numeric HTTP status; never dump their message.
+        code = getattr(error, "code", None)
+        status = f" (HTTP {code})" if isinstance(code, int) else ""
+        print(f"Live check failed: {type(error).__name__}{status}. Check credentials, model availability, media files, and provider connectivity.", file=sys.stderr)
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

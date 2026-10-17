@@ -131,6 +131,15 @@ def test_provider_retries_invalid_json_once_and_deletes_upload(tmp_path):
     provider.client.aio.files.delete.assert_awaited_once_with(name="files/1")
 
 
+def test_provider_sends_json_schema_without_legacy_schema_conversion():
+    provider = provider_with_responses(['{"events":[],"limitations":[]}'])
+    asyncio.run(provider.generate("inspect", Extraction))
+    config = provider.client.aio.models.generate_content.call_args.kwargs["config"]
+    assert config.response_schema is None
+    assert config.response_json_schema == Extraction.model_json_schema()
+    assert config.response_json_schema["additionalProperties"] is False
+
+
 def test_provider_domain_invalid_output_retries_and_fails():
     provider = provider_with_responses(['{"events":[],"limitations":[]}'] * 2)
 
@@ -140,3 +149,34 @@ def test_provider_domain_invalid_output_retries_and_fails():
     with pytest.raises(InvalidModelOutput):
         asyncio.run(provider.generate("inspect", Extraction, validate=reject))
     assert provider.client.aio.models.generate_content.await_count == 2
+
+
+def test_retry_feedback_identifies_safe_rule_without_echoing_input():
+    provider = provider_with_responses(['{"events":[],"limitations":[]}'] * 2)
+
+    def reject(result):
+        raise ValueError("Synthesis changed source evidence or seek timestamps")
+
+    with pytest.raises(InvalidModelOutput):
+        asyncio.run(provider.generate("inspect", Extraction, validate=reject))
+    second = provider.client.aio.models.generate_content.call_args_list[1]
+    assert "Synthesis changed source evidence or seek timestamps" in second.kwargs["contents"][-1].text
+    from rewind.analysis.provider import _validation_feedback
+    assert "private-upload-data" not in _validation_feedback(ValueError("private-upload-data"))
+
+
+def test_live_cli_errors_are_concise_and_redact_provider_details(monkeypatch, capsys):
+    from rewind.analysis import check_live
+
+    async def failure(root, fresh):
+        raise RuntimeError("API key secret-provider-value")
+
+    monkeypatch.setattr(check_live, "check", failure)
+    monkeypatch.setattr("sys.argv", ["check_live"])
+    with pytest.raises(SystemExit) as error:
+        check_live.main()
+    output = capsys.readouterr()
+    assert error.value.code == 1
+    assert "RuntimeError" in output.err
+    assert "secret-provider-value" not in output.err
+    assert "Traceback" not in output.err
