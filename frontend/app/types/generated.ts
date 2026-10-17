@@ -16,6 +16,7 @@ export interface AnalysisRevision {
   media_count: number
   media_files: Array<MediaFile>
   analysis: Analysis
+  answers: Array<CaseAnswer>
   intelligence: EvidenceIntelligence | null
 }
 
@@ -24,6 +25,18 @@ export interface BoxEdges {
   bottom: number
   left: number
   right: number
+}
+
+export interface CaseAnswer {
+  answer_id: string
+  question_id: string
+  question_title: string
+  question_text: string
+  question_revision: number
+  text: string
+  respondent: string
+  created_at: string
+  updated_at: string
 }
 
 export interface CaseMemory {
@@ -36,6 +49,7 @@ export interface CaseMemory {
 export interface Claim {
   text: string
   source_refs: Array<SourceRef>
+  answer_refs: Array<string>
 }
 
 export interface ClaimAssessment {
@@ -79,6 +93,7 @@ export interface Finding {
   title: string
   description: string
   source_refs: Array<SourceRef>
+  answer_refs: Array<string>
 }
 
 export interface FrameAssessment {
@@ -109,6 +124,7 @@ export interface MemoryEntry {
   kind: "observation" | "testimony" | "inference" | "summary" | "question" | "conflict"
   text: string
   source_refs: Array<SourceRef>
+  answer_refs: Array<string>
   first_revision: number
   last_revision: number
   status: "active" | "superseded"
@@ -154,6 +170,8 @@ export interface Case {
   analyzed_at: string | null
   analyzed_source_ids: Array<string>
   analyzed_media_files: Array<MediaFile>
+  answers: Array<CaseAnswer>
+  analyzed_answers: Array<CaseAnswer>
   analysis_history: Array<AnalysisRevision>
   memory: CaseMemory | null
   preview: ReconstructionPreview | null
@@ -171,4 +189,18 @@ export interface Job {
 
 export interface AnalyzeRequest {
   mode: "auto" | "mock" | "live"
+}
+
+export interface AnswerCreate {
+  question_id: string
+  question_revision: number
+  text: string
+  respondent: string
+  expected_evidence_revision: number
+}
+
+export interface AnswerUpdate {
+  text: string
+  respondent: string
+  expected_evidence_revision: number
 }

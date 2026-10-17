@@ -99,6 +99,13 @@
         "analysis": {
           "$ref": "#/$defs/Analysis"
         },
+        "answers": {
+          "items": {
+            "$ref": "#/$defs/CaseAnswer"
+          },
+          "title": "Answers",
+          "type": "array"
+        },
         "intelligence": {
           "anyOf": [
             {
@@ -158,6 +165,75 @@
       "title": "BoxEdges",
       "type": "object"
     },
+    "CaseAnswer": {
+      "additionalProperties": false,
+      "description": "A user-reported response with the original question retained for provenance.",
+      "properties": {
+        "answer_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Answer Id",
+          "type": "string"
+        },
+        "question_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Question Id",
+          "type": "string"
+        },
+        "question_title": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Question Title",
+          "type": "string"
+        },
+        "question_text": {
+          "maxLength": 12000,
+          "minLength": 1,
+          "title": "Question Text",
+          "type": "string"
+        },
+        "question_revision": {
+          "minimum": 1,
+          "title": "Question Revision",
+          "type": "integer"
+        },
+        "text": {
+          "maxLength": 8000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "respondent": {
+          "default": "",
+          "maxLength": 160,
+          "title": "Respondent",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer_id",
+        "question_id",
+        "question_title",
+        "question_text",
+        "question_revision",
+        "text",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "CaseAnswer",
+      "type": "object"
+    },
     "CaseMemory": {
       "additionalProperties": false,
       "properties": {
@@ -206,14 +282,19 @@
           "items": {
             "$ref": "#/$defs/SourceRef"
           },
-          "minItems": 1,
           "title": "Source Refs",
+          "type": "array"
+        },
+        "answer_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Answer Refs",
           "type": "array"
         }
       },
       "required": [
-        "text",
-        "source_refs"
+        "text"
       ],
       "title": "Claim",
       "type": "object"
@@ -475,6 +556,13 @@
           },
           "title": "Source Refs",
           "type": "array"
+        },
+        "answer_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Answer Refs",
+          "type": "array"
         }
       },
       "required": [
@@ -667,6 +755,13 @@
             "$ref": "#/$defs/SourceRef"
           },
           "title": "Source Refs",
+          "type": "array"
+        },
+        "answer_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Answer Refs",
           "type": "array"
         },
         "first_revision": {
@@ -929,6 +1024,20 @@
           "title": "Analyzed Media Files",
           "type": "array"
         },
+        "answers": {
+          "items": {
+            "$ref": "#/$defs/CaseAnswer"
+          },
+          "title": "Answers",
+          "type": "array"
+        },
+        "analyzed_answers": {
+          "items": {
+            "$ref": "#/$defs/CaseAnswer"
+          },
+          "title": "Analyzed Answers",
+          "type": "array"
+        },
         "analysis_history": {
           "items": {
             "$ref": "#/$defs/AnalysisRevision"
@@ -1059,6 +1168,75 @@
         }
       },
       "title": "AnalyzeRequest",
+      "type": "object"
+    },
+    "AnswerCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "question_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Question Id",
+          "type": "string"
+        },
+        "question_revision": {
+          "minimum": 1,
+          "title": "Question Revision",
+          "type": "integer"
+        },
+        "text": {
+          "maxLength": 8000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "respondent": {
+          "default": "",
+          "maxLength": 160,
+          "title": "Respondent",
+          "type": "string"
+        },
+        "expected_evidence_revision": {
+          "minimum": 1,
+          "title": "Expected Evidence Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "question_id",
+        "question_revision",
+        "text",
+        "expected_evidence_revision"
+      ],
+      "title": "AnswerCreate",
+      "type": "object"
+    },
+    "AnswerUpdate": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 8000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "respondent": {
+          "default": "",
+          "maxLength": 160,
+          "title": "Respondent",
+          "type": "string"
+        },
+        "expected_evidence_revision": {
+          "minimum": 1,
+          "title": "Expected Evidence Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "text",
+        "expected_evidence_revision"
+      ],
+      "title": "AnswerUpdate",
       "type": "object"
     }
   }

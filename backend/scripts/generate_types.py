@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from rewind.models import AnalyzeRequest, Case, Job
+from rewind.models import AnalyzeRequest, AnswerCreate, AnswerUpdate, Case, Job
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -33,7 +33,7 @@ def ts(schema: dict) -> str:
 
 def generate():
     definitions = {}
-    for model in (Case, Job, AnalyzeRequest):
+    for model in (Case, Job, AnalyzeRequest, AnswerCreate, AnswerUpdate):
         schema = model.model_json_schema(mode="serialization")
         definitions.update(schema.pop("$defs", {}))
         definitions[model.__name__] = schema

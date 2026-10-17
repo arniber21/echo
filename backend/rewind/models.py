@@ -71,7 +71,14 @@ class Event(SourceRef):
 
 class Claim(Contract):
     text: str = Field(min_length=1, max_length=8000)
-    source_refs: list[SourceRef] = Field(min_length=1)
+    source_refs: list[SourceRef] = Field(default_factory=list)
+    answer_refs: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def attributed(self) -> Self:
+        if not self.source_refs and not self.answer_refs:
+            raise ValueError("Claims require a media or case-answer reference")
+        return self
 
 
 class Finding(Contract):
@@ -79,6 +86,35 @@ class Finding(Contract):
     title: str = Field(min_length=1, max_length=240)
     description: str = Field(min_length=1, max_length=12000)
     source_refs: list[SourceRef] = Field(default_factory=list)
+    answer_refs: list[str] = Field(default_factory=list)
+
+
+class CaseAnswer(Contract):
+    """A user-reported response with the original question retained for provenance."""
+
+    answer_id: str = Field(min_length=1, max_length=100)
+    question_id: str = Field(min_length=1, max_length=100)
+    question_title: str = Field(min_length=1, max_length=240)
+    question_text: str = Field(min_length=1, max_length=12000)
+    question_revision: int = Field(ge=1)
+    text: str = Field(min_length=1, max_length=8000)
+    respondent: str = Field(default="", max_length=160)
+    created_at: datetime
+    updated_at: datetime
+
+
+class AnswerCreate(Contract):
+    question_id: str = Field(min_length=1, max_length=100)
+    question_revision: int = Field(ge=1)
+    text: str = Field(min_length=1, max_length=8000)
+    respondent: str = Field(default="", max_length=160)
+    expected_evidence_revision: int = Field(ge=1)
+
+
+class AnswerUpdate(Contract):
+    text: str = Field(min_length=1, max_length=8000)
+    respondent: str = Field(default="", max_length=160)
+    expected_evidence_revision: int = Field(ge=1)
 
 
 class Analysis(Contract):
@@ -122,6 +158,7 @@ class MemoryEntry(Contract):
     ]
     text: str = Field(min_length=1, max_length=16000)
     source_refs: list[SourceRef] = Field(default_factory=list)
+    answer_refs: list[str] = Field(default_factory=list)
     first_revision: int = Field(ge=1)
     last_revision: int = Field(ge=1)
     status: Literal["active", "superseded"] = "active"
@@ -164,6 +201,7 @@ class AnalysisRevision(Contract):
     media_count: int = Field(ge=0)
     media_files: list[MediaFile] = Field(default_factory=list)
     analysis: Analysis
+    answers: list[CaseAnswer] = Field(default_factory=list)
     intelligence: EvidenceIntelligence | None = None
 
 
@@ -185,6 +223,8 @@ class Case(Contract):
     analyzed_at: datetime | None = None
     analyzed_source_ids: list[str] = Field(default_factory=list)
     analyzed_media_files: list[MediaFile] = Field(default_factory=list)
+    answers: list[CaseAnswer] = Field(default_factory=list)
+    analyzed_answers: list[CaseAnswer] = Field(default_factory=list)
     analysis_history: list[AnalysisRevision] = Field(default_factory=list)
     memory: CaseMemory | None = None
     preview: ReconstructionPreview | None = None
@@ -210,7 +250,9 @@ class Job(Contract):
     error: str | None = None
 
 
-def validate_analysis(analysis: Analysis, media: list[MediaFile]) -> Analysis:
+def validate_analysis(
+    analysis: Analysis, media: list[MediaFile], answers: list[CaseAnswer] | None = None
+) -> Analysis:
     """Reject orphaned references and timestamps beyond the source duration."""
     analysis = Analysis.model_validate(analysis.model_dump())
     sources = {item.source_id: item for item in media}
@@ -224,6 +266,12 @@ def validate_analysis(analysis: Analysis, media: list[MediaFile]) -> Analysis:
     event_ids = {event.event_id for event in analysis.events}
     if len(event_ids) != len(analysis.events):
         raise ValueError("Event IDs must be unique")
+    answer_ids = {answer.answer_id for answer in answers or []}
+    if len(answer_ids) != len(answers or []):
+        raise ValueError("Case answer IDs must be unique")
+    for item in [*analysis.summary, *analysis.missing_evidence, *analysis.contradictions]:
+        if not set(item.answer_refs) <= answer_ids:
+            raise ValueError("Unknown case-answer reference")
     refs = [*analysis.events]
     for claim in analysis.summary:
         refs.extend(claim.source_refs)
@@ -265,7 +313,7 @@ def validate_analysis(analysis: Analysis, media: list[MediaFile]) -> Analysis:
         if not set(event.supports) <= event_ids:
             raise ValueError("Unknown supported event reference")
     for contradiction in analysis.contradictions:
-        if len({ref.source_id for ref in contradiction.source_refs}) < 2:
+        if len({ref.source_id for ref in contradiction.source_refs}) + len(set(contradiction.answer_refs)) < 2:
             raise ValueError("Contradictions must reference both conflicting sources")
     return analysis
 
