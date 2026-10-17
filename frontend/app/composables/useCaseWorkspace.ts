@@ -39,8 +39,9 @@ export function useCaseWorkspace() {
 
   async function load(caseId?: string) {
     await run(async (signal) => {
-      const path = caseId ? `/api/cases/${encodeURIComponent(caseId)}` : '/api/workspace'
-      currentCase.value = await $fetch<Case>(path, { signal })
+      currentCase.value = caseId
+        ? await $fetch<Case>(`/api/cases/${encodeURIComponent(caseId)}`, { signal })
+        : await $fetch<Case | null>('/api/workspace', { signal })
       job.value = null
     })
   }

@@ -16,11 +16,11 @@ function drop(event: DragEvent) {
 </script>
 <template>
   <section class="evidence-library">
-    <div class="section-heading">
+    <div class="section-heading mb-4">
       <h2>Evidence library</h2>
       <span class="count">{{ media.length.toString().padStart(2, '0') }}</span>
     </div>
-    <p class="section-note">Original sources. One connected story.</p>
+
     <button
       type="button"
       class="library-ingest"

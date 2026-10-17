@@ -99,11 +99,9 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
   <div class="app-shell">
     <header class="topbar">
       <NuxtLink to="/" class="brand"
-        ><span class="brand-symbol"><UIcon name="i-lucide-rewind" /></span>rewind<span
-          class="brand-divider"
-        /><span class="brand-tagline">Evidence into understanding.</span></NuxtLink
+        ><span class="brand-symbol"><UIcon name="i-lucide-rewind" /></span>rewind</NuxtLink
       >
-      <div class="header-actions">
+      <div class="header-actions flex-wrap [&>button]:shrink-0 [&>button]:whitespace-nowrap">
         <span class="local-label"><span class="status-dot" /> LOCAL WORKSPACE</span
         ><UploadCase
           ref="intake"
@@ -120,15 +118,14 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
       <div class="breadcrumb">
         <CaseSwitcher :current-id="currentCase?.case_id" :busy="busy" @select="load" />
         <UIcon name="i-lucide-chevron-right" />
-        <span>{{ currentCase?.title ?? 'Opening workspace' }}</span>
+        <span>{{ currentCase?.title ?? (busy ? 'Opening workspace' : 'New workspace') }}</span>
       </div>
       <div class="case-header">
         <div>
           <div class="eyebrow">INCIDENT RECONSTRUCTION <span class="eyebrow-line" /></div>
-          <h1>{{ currentCase?.title ?? 'Your evidence, connected.' }}</h1>
-          <p>A clearer picture of what happened. Grounded in what you have.</p>
+          <h1>{{ currentCase?.title ?? 'Evidence workspace' }}</h1>
         </div>
-        <div class="case-actions">
+        <div v-if="currentCase" class="case-actions">
           <UButton
             v-if="currentCase?.analysis"
             :to="`/report?case=${currentCase.case_id}`"
@@ -156,8 +153,8 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
           </select>
         </div>
       </div>
-      <div v-if="displayedAnalysis?.notice" class="analysis-mode-notice">
-        <UIcon name="i-lucide-info" />{{ displayedAnalysis.notice }}
+      <div v-if="displayedAnalysis?.mode === 'mock'" class="analysis-mode-notice">
+        <UIcon name="i-lucide-info" />Simulated analysis · files have not been analyzed
       </div>
       <UAlert
         v-if="error"
@@ -214,13 +211,6 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
             @edit="editSource"
             @select="selectFile"
           />
-          <div class="workspace-note">
-            <span class="note-kicker">THE REWIND APPROACH</span>
-            <p>
-              Make the uncertainty visible.<br />Keep every finding connected<br />to its source.
-            </p>
-            <UIcon name="i-lucide-move-up-right" />
-          </div>
         </aside>
         <div class="reconstruction">
           <EvidencePlayer :media="selectedMedia" :reference="reference" />
@@ -275,14 +265,13 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
         </div>
       </div>
       <div v-else-if="!busy" class="empty-analysis">
-        <h2>Bring the evidence together.</h2>
-        <p>Create a case or open the default workspace case.</p>
-        <UButton @click="load()">Open default case</UButton>
+        <UIcon name="i-lucide-folder-plus" />
+        <h2>No cases yet</h2>
+        <p>Upload footage or other files to start.</p>
+        <UButton size="lg" icon="i-lucide-cloud-upload" @click="openIntake()"
+          >Add footage &amp; files</UButton
+        >
       </div>
-      <footer class="workspace-footer">
-        <span>REWIND <span class="middot">/</span> FROM FRAGMENTS TO CONTEXT</span
-        ><span>Evidence informs. People decide.</span>
-      </footer>
     </main>
   </div>
 </template>
