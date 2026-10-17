@@ -1,0 +1,57 @@
+frontend/app/pages/report.vue
+  s_4d6956e576b617::t_173d35e566d819 70,85,128,171,173
+frontend/nuxt.config.ts
+  s_4d6956e576b617::t_173d35e566d819 22
+e2e/playwright.config.ts
+  s_4d6956e576b617::t_55046883891bcc 3-4,12,17,19-30
+  s_4d6956e576b617::t_1357549282116f 18
+  s_4d6956e576b617::t_e7aae108187c9a 31
+justfile
+  s_4d6956e576b617::t_7254f3da6f056a 41,47-50
+  s_4d6956e576b617::t_11b71c485a734e 51
+frontend/app/components/AnalysisInsights.vue
+  s_4d6956e576b617::t_d5f4b6899b5179 35,47,64,92-99
+README.md
+  s_4d6956e576b617::t_8bdd4205ba678b 31-33,43-46,87-88,107-108,117-121
+e2e/tests/real-clips.spec.ts
+  s_4d6956e576b617::t_8cf2a8bdfc8025 1-102
+backend/tests/test_api.py
+  s_4d6956e576b617::t_e15ae22a51964c 61-70
+  s_4d6956e576b617::t_e6876aadc4ff2a 17-22
+backend/rewind/config.py
+  s_4d6956e576b617::t_e15ae22a51964c 18
+backend/rewind/main.py
+  s_4d6956e576b617::t_e15ae22a51964c 104-105,152,161-165,167,169-170
+frontend/app/components/WorkingAccount.vue
+  s_4d6956e576b617::t_99d8c2c37f1d8c 85
+frontend/app/components/EvidencePlayer.vue
+  s_4d6956e576b617::t_173d35e566d819 41
+e2e/tests/workspace.spec.ts
+  s_4d6956e576b617::t_4e45cd6a47b12b 141-143,154-174
+  s_4d6956e576b617::t_2a6f9a96e9d85a 175
+frontend/app/pages/index.vue
+  s_4d6956e576b617::t_b055ac6fb527c3 45,48-50,121,259
+scripts/dev.py
+  s_4d6956e576b617::t_1357549282116f 52,77
+backend/.env.example
+  s_4d6956e576b617::t_8bdd4205ba678b 7-8
+scripts/browser_servers.py
+  s_4d6956e576b617::t_1357549282116f 1-5,7-15,18,22-26
+  s_4d6956e576b617::t_a2c5461cbad1aa 6,16-17,19-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7917c4b41d431cc78abfc4a994ed63a1328e083",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
