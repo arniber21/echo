@@ -1,0 +1,45 @@
+e2e/tests/answers.spec.ts
+  s_4d6956e576b617::t_64b771c711180f 1-71
+frontend/app/components/AnalysisInsights.vue
+  s_4d6956e576b617::t_46d24fd550643e 2,4-17,57,71-86,108
+frontend/app/components/AnswerQuestion.vue
+  s_4d6956e576b617::t_152a201a9311dd 1-145
+frontend/app/components/AnswerReferences.vue
+  s_4d6956e576b617::t_4cc9b0081191ee 1-43
+frontend/app/components/CaseResponses.vue
+  s_4d6956e576b617::t_a2db1eaa7331d6 1-54
+frontend/app/components/ReconstructionHistory.vue
+  s_4d6956e576b617::t_7253f3d7e21e78 3,14-16,74-78
+frontend/app/components/WorkingAccount.vue
+  s_4d6956e576b617::t_a2d4442a7cec0d 2,4-9,49,74,101,103-104,123,135-136,144,156,173,182
+frontend/app/composables/useCaseWorkspace.ts
+  s_4d6956e576b617::t_de47cca3cda67c 2,90-118,167
+frontend/app/pages/index.vue
+  s_4d6956e576b617::t_bf3c3e1bb4f301 7-18,226,281,284-288,290,300-306
+frontend/app/pages/report.vue
+  s_4d6956e576b617::t_4d749674be0566 74,82,85,195
+frontend/app/utils/answers.ts
+  s_4d6956e576b617::t_3a9a4a6a3830c5 1-27
+frontend/app/utils/revisions.ts
+  s_4d6956e576b617::t_5a7007d9531c89 5,16-17,57-58,74-75
+frontend/tests/answers.test.ts
+  s_4d6956e576b617::t_6587740e789844 1-29
+frontend/tests/revisions.test.ts
+  s_4d6956e576b617::t_213944a758caea 54-55,83,103,144,164,182,212,225-259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "077e8d3b8e3c1b76b1162141150b9c43b2e7d124",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
