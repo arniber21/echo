@@ -12,7 +12,9 @@ export function formatTime(seconds: number | null | undefined): string {
 export function caseExtent(events: Event[], media: MediaFile[]): number {
   return Math.max(
     20,
-    ...events.flatMap((event) => [event.case_best, event.case_max ?? event.case_best]),
+    ...events
+      .filter(hasCasePlacement)
+      .flatMap((event) => [event.case_best, event.case_max ?? event.case_best]),
     ...media
       .filter((file) => file.source_type === 'video')
       .map((file) => file.duration_seconds ?? 0),
@@ -29,9 +31,19 @@ export function rangeStyle(event: Event, extent: number): Record<string, string>
 }
 
 export function placementLabel(event: Event): string {
-  if (event.case_max === null && event.source_type === 'photo')
-    return 'Post-incident · time unknown'
+  if (!hasCasePlacement(event)) return 'Case time unknown'
   return `${event.case_min === null ? 'Open start' : formatTime(event.case_min)} – ${event.case_max === null ? 'Open end' : formatTime(event.case_max)}`
+}
+
+/** A free-floating source event has no supported position on the case clock. */
+export function hasCasePlacement(event: Event): boolean {
+  return event.case_min !== null || event.case_max !== null
+}
+
+/** Show the recorded source interval without turning it into a case interval. */
+export function sourceTimeLabel(event: Event): string {
+  if (event.source_start === null) return 'Source time unknown'
+  return `Source ${formatTime(event.source_start)}${event.source_end !== null && event.source_end !== event.source_start ? ` – ${formatTime(event.source_end)}` : ''}`
 }
 
 export function sourceLabel(ref: SourceRef, media: MediaFile[]): string {

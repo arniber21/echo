@@ -5,6 +5,8 @@ import {
   caseExtent,
   eventSourceReference,
   formatTime,
+  hasCasePlacement,
+  sourceTimeLabel,
   packEventRanges,
   placementLabel,
   primaryVideo,
@@ -49,7 +51,7 @@ describe('distinct source and case clocks', () => {
       case_max: null,
     }
     expect(eventSourceReference(photo).source_start).toBeNull()
-    expect(placementLabel(photo)).toBe('Post-incident · time unknown')
+    expect(placementLabel(photo)).toBe('00:08.0 – Open end')
     expect(rangeStyle(photo, 20)).toEqual({ left: '40%', width: '60%' })
   })
   test('extent includes distant testimony rather than hiding wide ranges', () => {
@@ -96,4 +98,17 @@ test('overlapping uncertainty ranges stay separately clickable', () => {
     20,
   )
   expect(separated.map((item) => item.row)).toEqual([0, 0])
+})
+
+test('unaligned events preserve source intervals without asserting a case position', () => {
+  const unknown: Event = { ...event, case_min: null, case_max: null, case_best: 0 }
+  expect(hasCasePlacement(unknown)).toBe(false)
+  expect(placementLabel(unknown)).toBe('Case time unknown')
+  expect(caseExtent([{ ...unknown, case_best: 800 }], [])).toBe(20)
+  expect(sourceTimeLabel(unknown)).toBe('Source 00:17.0 – 00:20.0')
+  expect(hasCasePlacement({ ...unknown, case_min: 8 })).toBe(true)
+  expect(placementLabel({ ...unknown, source_type: 'photo' })).not.toContain('Post-incident')
+  expect(sourceTimeLabel({ ...unknown, source_start: null, source_end: null })).toBe(
+    'Source time unknown',
+  )
 })

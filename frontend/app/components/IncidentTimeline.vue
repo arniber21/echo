@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import type { Event, MediaFile } from '../types/generated'
-import { caseExtent, formatTime, placementLabel, primaryVideo, rangeStyle } from '../utils/timeline'
+import {
+  caseExtent,
+  formatTime,
+  hasCasePlacement,
+  placementLabel,
+  primaryVideo,
+  rangeStyle,
+  sourceTimeLabel,
+} from '../utils/timeline'
 const props = defineProps<{
   events: Event[]
   media: MediaFile[]
@@ -11,7 +19,13 @@ const props = defineProps<{
 const emit = defineEmits<{ select: [event: Event] }>()
 const anchor = computed(() => primaryVideo(props.anchorMedia ?? props.media))
 const extent = computed(() => caseExtent(props.events, props.media))
-const ordered = computed(() => [...props.events].sort((a, b) => a.case_best - b.case_best))
+const ordered = computed(() =>
+  [...props.events].sort(
+    (a, b) =>
+      Number(hasCasePlacement(b)) - Number(hasCasePlacement(a)) ||
+      (hasCasePlacement(a) ? a.case_best - b.case_best : 0),
+  ),
+)
 const ticks = computed(() => Array.from({ length: 5 }, (_, index) => (extent.value * index) / 4))
 </script>
 <template>
@@ -71,7 +85,7 @@ const ticks = computed(() => Array.from({ length: 5 }, (_, index) => (extent.val
             >
           </div>
         </div>
-        <div class="range-track">
+        <div v-if="hasCasePlacement(event)" class="range-track">
           <div class="track-grid"><i v-for="tick in ticks" :key="tick" /></div>
           <div
             class="range-bar"
@@ -85,6 +99,10 @@ const ticks = computed(() => Array.from({ length: 5 }, (_, index) => (extent.val
             >{{ placementLabel(event) }} <span class="estimated">estimated</span></span
           >
         </div>
+        <div v-else class="unaligned-placement">
+          <strong>Case time unknown</strong>
+          <span>{{ sourceTimeLabel(event) }}</span>
+        </div>
       </button>
     </div>
     <div class="timeline-footnote">
@@ -93,3 +111,27 @@ const ticks = computed(() => Array.from({ length: 5 }, (_, index) => (extent.val
     </div>
   </section>
 </template>
+
+<style scoped>
+.unaligned-placement {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px dashed var(--app-border);
+  border-radius: 6px;
+  background: var(--app-subtle);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.unaligned-placement strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.unaligned-placement span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--app-secondary);
+}
+</style>
