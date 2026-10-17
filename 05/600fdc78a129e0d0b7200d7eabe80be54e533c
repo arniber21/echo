@@ -1,0 +1,21 @@
+demo/real-footage/metadata.md
+  s_4d6956e576b617::t_330b4e767a2881 1-71
+scripts/prepare_dashcam.py
+  s_4d6956e576b617::t_41342038b63556 1-243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "05600fdc78a129e0d0b7200d7eabe80be54e533c",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
