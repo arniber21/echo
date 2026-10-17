@@ -46,12 +46,32 @@ class ClaimAssessment(IntelligenceModel):
     overclaim_probability: Probability
 
 
+class ViewEventMatch(IntelligenceModel):
+    event_a: str
+    event_b: str
+    probability: Probability
+
+
+class VideoRelationship(IntelligenceModel):
+    source_a: str
+    source_b: str
+    relationship: Literal[
+        "same_incident_different_view", "same_footage", "different_incident", "uncertain"
+    ]
+    confidence: Probability
+    same_incident_probability: Probability
+    different_view_probability: Probability
+    basis: str
+    matches: list[ViewEventMatch] = Field(default_factory=list)
+
+
 class EvidenceIntelligence(IntelligenceModel):
     model: str
     version: str
     status: Literal["complete", "partial", "unavailable"]
     sources: list[SourceIntelligence] = Field(default_factory=list)
     claims: list[ClaimAssessment] = Field(default_factory=list)
+    video_relationships: list[VideoRelationship] = Field(default_factory=list)
     input_tokens: int = Field(default=0, ge=0)
     elapsed_seconds: float = Field(default=0, ge=0)
     diagnostics: list[str] = Field(default_factory=list, max_length=100)
