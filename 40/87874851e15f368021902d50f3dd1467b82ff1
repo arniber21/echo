@@ -1,0 +1,51 @@
+backend/tests/test_api.py
+  s_4d6956e576b617::t_e8a03e72add32f 377-379
+  s_4d6956e576b617::t_a8fe9c0e69fefe 793-870
+CONTRIBUTING.md
+  s_4d6956e576b617::t_ccce26ba8df026 1-27
+shared/schema.json
+  s_4d6956e576b617::t_6eba3df9f97a72 966-967
+AGENTS.md
+  s_4d6956e576b617::t_ccce26ba8df026 1-11
+frontend/app/types/generated.ts
+  s_4d6956e576b617::t_6eba3df9f97a72 159
+backend/rewind/analysis/types.py
+  s_4d6956e576b617::t_d29eae7d3b41b1 18-20
+backend/.env.example
+  s_4d6956e576b617::t_6eba3df9f97a72 9-15
+backend/rewind/config.py
+  s_4d6956e576b617::t_d29eae7d3b41b1 21-22
+  s_4d6956e576b617::t_24de3c50f20e78 23-28
+backend/tests/test_analysis_pipeline.py
+  s_4d6956e576b617::t_caa2b19da3b74f 537-552,559-578,593-603
+  s_4d6956e576b617::t_e8a03e72add32f 553-558,579-592
+backend/rewind/analysis/pipeline.py
+  s_4d6956e576b617::t_ff069717be1f72 132
+  s_4d6956e576b617::t_d29eae7d3b41b1 6,10,26-27,58,95-99,110,119,121,124-125,143,242-243,261,266
+  s_4d6956e576b617::t_24de3c50f20e78 100-109,120,122-123,126-131,133-142,244-260,267-270
+.github/ISSUE_TEMPLATE/work-item.yml
+  s_4d6956e576b617::t_ccce26ba8df026 1-31
+README.md
+  s_4d6956e576b617::t_bf708fefb4bb63 90-91,96-114,174-175
+backend/rewind/main.py
+  s_4d6956e576b617::t_6eba3df9f97a72 22,277-281,315-319,321,351,355,392-394,399-400
+  s_4d6956e576b617::t_24de3c50f20e78 395-398
+backend/rewind/models.py
+  s_4d6956e576b617::t_d29eae7d3b41b1 192-193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4087874851e15f368021902d50f3dd1467b82ff1",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
