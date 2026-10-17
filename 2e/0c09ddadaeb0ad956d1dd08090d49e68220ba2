@@ -1,0 +1,22 @@
+e2e/tests/evidence-signals.spec.ts
+  s_4d6956e576b617::t_ec3af1e997feb6 56
+  s_4d6956e576b617::t_f40894a660e9a2 1-55,57-75
+frontend/app/pages/index.vue
+  s_4d6956e576b617::t_f40894a660e9a2 46,51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2e0c09ddadaeb0ad956d1dd08090d49e68220ba2",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
