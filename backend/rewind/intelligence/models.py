@@ -54,7 +54,10 @@ class ViewEventMatch(IntelligenceModel):
 
 class DetailedViewReview(IntelligenceModel):
     relationship: Literal[
-        "same_incident_different_view", "same_footage", "different_incident", "uncertain"
+        "same_incident_different_view",
+        "same_footage",
+        "different_incident",
+        "uncertain",
     ]
     confidence: Probability
     basis: str = Field(min_length=1, max_length=2000)
