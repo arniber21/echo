@@ -166,80 +166,97 @@ test("question answers persist, stay pending until update, and retain exact hist
   ).toContainText("User reported · Driver A");
 });
 
-test("provisional multi-view relationships open each original without inventing a seek", async ({
-  page,
-}) => {
-  const response = await page.request.get("/api/cases/demo");
-  const incident: Case = await response.json();
-  const first = incident.media_files.find(
-    (source) => source.source_type === "video",
-  );
-  if (!first) throw new Error("Fixture video is required");
-  const second = {
-    ...first,
-    source_id: "other-camera",
-    filename: "other-camera.mp4",
-    metadata: { ...first.metadata, label: "Other camera" },
-  };
-  incident.media_files.push(second);
-  incident.analyzed_media_files.push(second);
-  incident.analyzed_source_ids.push(second.source_id);
-  incident.intelligence = {
-    model: "jev-1.14.0",
-    version: "browser-fixture",
-    status: "complete",
-    sources: [],
-    claims: [],
-    video_relationships: [
-      {
-        source_a: first.source_id,
-        source_b: second.source_id,
-        relationship: "same_incident_different_view",
-        confidence: 0.86,
-        same_incident_probability: 0.91,
-        different_view_probability: 0.86,
-        basis:
-          "Similar vehicles and sequence, seen from different sides. Clock alignment is unknown.",
-        matches: [],
-        detailed_review: null,
-      },
-    ],
-    input_tokens: 0,
-    elapsed_seconds: 0,
-    diagnostics: [],
-  };
-  await page.route("**/api/cases/demo", (route) =>
-    route.fulfill({ json: incident }),
-  );
-  await page.goto("/?case=demo");
-  const relationships = page.getByRole("region", {
-    name: "Video relationships",
-    exact: true,
-  });
-  await expect(relationships).toContainText(
-    "Likely same incident · different viewpoint",
-  );
-  await expect(relationships).toContainText("Unverified model assessment");
-  await expect(relationships).toContainText("Clock alignment is unknown");
-  await relationships
-    .getByRole("button", { name: `Open ${second.filename}`, exact: true })
-    .click();
-  await expect(
-    page.getByRole("region", { name: "Source details", exact: true }),
-  ).toContainText("Other camera");
-  await relationships
-    .getByRole("button", { name: `Open ${first.filename}`, exact: true })
-    .click();
-  await expect(
-    page
-      .getByRole("region", { name: "Evidence viewer", exact: true })
-      .locator(".player-caption"),
-  ).toContainText(first.filename);
-  await expect
-    .poll(() =>
+for (const detailedReview of [false, true]) {
+  test(`provisional multi-view relationships open originals without inventing a seek (${detailedReview ? "detailed review" : "Jev"})`, async ({
+    page,
+  }) => {
+    const response = await page.request.get("/api/cases/demo");
+    const incident: Case = await response.json();
+    const first = incident.media_files.find(
+      (source) => source.source_type === "video",
+    );
+    if (!first) throw new Error("Fixture video is required");
+    const second = {
+      ...first,
+      source_id: "other-camera",
+      filename: "other-camera.mp4",
+      metadata: { ...first.metadata, label: "Other camera" },
+    };
+    incident.media_files.push(second);
+    incident.analyzed_media_files.push(second);
+    incident.analyzed_source_ids.push(second.source_id);
+    incident.intelligence = {
+      model: "jev-1.14.0",
+      version: "browser-fixture",
+      status: "complete",
+      sources: [],
+      claims: [],
+      video_relationships: [
+        {
+          source_a: first.source_id,
+          source_b: second.source_id,
+          relationship: detailedReview
+            ? "uncertain"
+            : "same_incident_different_view",
+          confidence: 0.86,
+          same_incident_probability: 0.91,
+          different_view_probability: 0.86,
+          basis:
+            "Similar vehicles and sequence, seen from different sides. Clock alignment is unknown.",
+          matches: [],
+          detailed_review: detailedReview
+            ? {
+                relationship: "same_incident_different_view",
+                confidence: 0.95,
+                basis:
+                  "Distinctive truck markings match. Clock alignment is unknown.",
+                matches: [],
+                model: "detailed-test-model",
+              }
+            : null,
+        },
+      ],
+      input_tokens: 0,
+      elapsed_seconds: 0,
+      diagnostics: [],
+    };
+    await page.route("**/api/cases/demo", (route) =>
+      route.fulfill({ json: incident }),
+    );
+    await page.goto("/?case=demo");
+    const relationships = page.getByRole("region", {
+      name: "Video relationships",
+      exact: true,
+    });
+    await expect(relationships).toContainText(
+      "Likely same incident · different viewpoint",
+    );
+    if (detailedReview) {
+      await expect(relationships).toContainText("Detailed comparison");
+      await expect(relationships).toContainText("Initial Jev estimates");
+    }
+    await expect(relationships).toContainText("Unverified model assessment");
+    await expect(relationships).toContainText("Clock alignment is unknown");
+    await relationships
+      .getByRole("button", { name: `Open ${second.filename}`, exact: true })
+      .click();
+    await expect(
+      page.getByRole("region", { name: "Source details", exact: true }),
+    ).toContainText("Other camera");
+    await relationships
+      .getByRole("button", { name: `Open ${first.filename}`, exact: true })
+      .click();
+    await expect(
       page
-        .locator("video")
-        .evaluate((video: HTMLVideoElement) => video.currentTime),
-    )
-    .toBe(0);
-});
+        .getByRole("region", { name: "Evidence viewer", exact: true })
+        .locator(".player-caption"),
+    ).toContainText(first.filename);
+    await expect
+      .poll(() =>
+        page
+          .locator("video")
+          .evaluate((video: HTMLVideoElement) => video.currentTime),
+      )
+      .toBe(0);
+  });
+}

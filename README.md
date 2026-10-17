@@ -74,6 +74,11 @@ annotations. Context edits invalidate synthesis, while extraction caches for the
 unchanged media remain reusable. User notes are treated as unverified context,
 never as instructions or independently observed facts.
 
+Questions under **Missing evidence** have an **Answer question** action. Responses
+retain their question, respondent, and revision; saving a response marks the case
+for an update. Accepted findings cite the exact response version used, while
+earlier reconstructions keep their original responses. See [case responses](docs/case-answers.md).
+
 ## Analysis modes
 
 Copy `backend/.env.example` to `backend/.env` and set `GEMINI_API_KEY` to use live
@@ -115,6 +120,11 @@ and do not fail detailed reconstruction. Simulated analysis makes no provider ca
 See [capabilities, examples and evaluation plan](docs/typesafe-images-research.md).
 Accuracy and cost comparisons are tracked in GitHub issue #13; sampled negatives
 must not be used to rule out events between frames.
+
+For multiple videos, Jev checks whether they depict the same incident from different
+cameras. Plausible uncertain pairs can receive a bounded detailed visual comparison.
+The interface preserves both assessments and opens each original source. These
+checks do not automatically synchronize clocks. See [video comparisons](docs/video-viewpoints.md).
 
 
 ## Commands
