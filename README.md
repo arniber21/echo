@@ -99,6 +99,11 @@ Set `TYPESAFE_API_KEY` server-side to enable Jev image and text judgments during
 live analysis. The model is pinned to `jev-1.14.0`; every image/Box request sends
 `TypeSafe-Danger-Zone-Images: true`. `REWIND_TYPESAFE_ENABLED=false` disables it.
 The bounded sample count is `REWIND_TYPESAFE_MAX_FRAMES` (default 8 per video).
+Up to four images share a request; cached frame judgments remain reusable.
+A separate **Quick scan** appears while Gemini continues detailed reconstruction.
+It contains provisional frame classifications and source-clock links, and never
+replaces the accepted account or history until detailed analysis succeeds.
+
 
 Jev classifies sampled images, labels extraction text, and checks summary claims
 against their cited source intervals. **Evidence signals** shows saved probabilities

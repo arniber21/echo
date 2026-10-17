@@ -81,3 +81,37 @@ At the published rate, 100,000 measured input tokens cost $0.0042. That arithmet
 A request pinned to `jev-1.14.0` sent a 1120×630 frame at source second 1 from the user's `van-before.mp4`, with `TypeSafe-Danger-Zone-Images: true`. It returned HTTP 200 in 2.10 seconds: road visible 0.96, visible vehicle contact 0.08, yellow vehicle visible 0.95. A Box for the yellow vehicle returned left/right 0.72/0.99 and top/bottom 0.43/0.76, confidence 0.68. The frame was visually inspected; this is one smoke check, not an accuracy evaluation.
 
 Reported usage: 2,219 input tokens, 74 output tokens. At the published rate this is approximately $0.0000932. The raw result is retained in ignored local `data/typesafe-probe.json`; no credentials are included.
+
+## Implemented integration and measured latency
+
+Issues #15 and #18 implement cached frame classifications/boxes, extraction-text labels,
+and claim support/overclaim checks against exact cited source intervals. Four images
+share one request, with bounded concurrency and deadlines. A separate persisted Quick
+scan is published before Gemini extraction/synthesis completes. It contains provisional
+classifier-derived frame labels, never verified events. Source clocks stay intact;
+unknown secondary-source alignment remains open. The accepted account/history is not
+replaced by a preview, and a failed detailed pass retains it.
+
+One live cold run on the newly ingested 24.024-second mountain-road clip produced:
+
+| Measurement | Observed result |
+| --- | --- |
+| First preview available through the API | 1.064 s |
+| Sampled images / provisional timeline entries | 8 / 8 |
+| Final detailed reconstruction completed | 28.966 s |
+| Fresh Jev input tokens, visual scan | 17,944 |
+| Fresh Jev input tokens, full scan plus text checks | 23,022 |
+| Repeat scan over the same eight images | 0.371 s, zero fresh inference tokens |
+
+At the published TypeSafe rate, 23,022 input tokens cost approximately $0.000967;
+this excludes Gemini costs. These are individual smoke measurements, not a latency
+SLA or a factual-accuracy benchmark. The original slow serial implementation was
+not measured on this same clip, so this is not a controlled before/after speedup
+claim. Local raw records: `data/latency/jev-quick-scan.json` and
+`data/latency/jev-cached-scan.json`. Issue #13 owns repeated incident-level recall,
+quality, cost and latency comparisons before any hard frame/window filtering.
+
+Validation after integration: 87 backend tests, 18 frontend unit tests, 31 isolated
+browser tests, strict TypeScript/contracts, and production build passed. Mocked tests
+validate workflow and failure handling; the live run validates provider connectivity
+and end-to-end behavior, not truth of the model's findings.
