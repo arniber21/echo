@@ -1,0 +1,55 @@
+backend/tests/test_api.py
+  s_4d6956e576b617::t_7fd4e0b92a3ff1 37-39,42-47,49-54
+  s_4d6956e576b617::t_db0aae88cb832a 4-6,26-34
+  s_4d6956e576b617::t_f083c485ee38c7 3,35-36,40-41,48,55-56
+  s_4d6956e576b617::t_c261ede31dfc68 57-58
+backend/rewind/main.py
+  s_4d6956e576b617::t_cf705fbcc0a1d6 5,138-139,143-157
+  s_4d6956e576b617::t_9bd312b98946f8 140-142
+e2e/tsconfig.json
+  s_4d6956e576b617::t_37e1254c2c178f 1-13
+frontend/app/pages/report.vue
+  s_4d6956e576b617::t_cf6b3876811095 17
+  s_4d6956e576b617::t_cda7b7598d03c8 33-38,52-57,61-67
+  s_4d6956e576b617::t_b61a779810d3b4 5-8
+  s_4d6956e576b617::t_89944f1066ce83 59-60,68
+e2e/tests/workspace.spec.ts
+  s_4d6956e576b617::t_2237cf143243af 3,5,8,23,31,33
+  s_4d6956e576b617::t_db0aae88cb832a 140-152
+  s_4d6956e576b617::t_a0319c33461c55 131
+  s_4d6956e576b617::t_f931f38f7cfe9c 9,102-130,132-138
+  s_4d6956e576b617::t_ab09b1642c19a0 139,153
+frontend/app/components/UploadCase.vue
+  s_4d6956e576b617::t_e512ee193eb8a7 33-35
+backend/rewind/memory.py
+  s_4d6956e576b617::t_ad1c85f0954184 24-32,38-40,45-47,51-61,64-69,71-85,87-89,91-94
+scripts/import_case.py
+  s_4d6956e576b617::t_b351d1963b9a3b 20-22,27-33,39-41,48-50,62-65
+  s_4d6956e576b617::t_83a0d4d6f7157c 1-19,23-26,34-38,42-47,51-61,66-76
+scripts/dev.py
+  s_4d6956e576b617::t_f57eac73cf4e68 25
+  s_4d6956e576b617::t_b351d1963b9a3b 2,29-31,53-59,62-77,79-82,85-89,93-96
+  s_4d6956e576b617::t_a0319c33461c55 60-61
+frontend/app/components/WorkingAccount.vue
+  s_4d6956e576b617::t_702cf70b221b99 6-14,16-20,27-33,35-37,40-44,46-48,50-53,55-57,60-68,73-75,77-78,82-89,94-197
+backend/tests/test_memory.py
+  s_4d6956e576b617::t_ad1c85f0954184 11-14,40-46,59-61
+justfile
+  s_4d6956e576b617::t_37e1254c2c178f 29,44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a39a92604d0e819e4e6617ce9605f7c2fc9555d8",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
