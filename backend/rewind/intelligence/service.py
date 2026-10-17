@@ -11,7 +11,7 @@ from typing import Annotated, Literal
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from rewind.models import Analysis, MediaFile, SourceType
+from rewind.models import Analysis, Claim, MediaFile, SourceType
 
 from .frames import normalize_image, sample_times, video_frame
 from .models import (
@@ -24,6 +24,7 @@ from .models import (
 )
 
 VERSION = "jev-observations-v1"
+CLAIM_QUESTION_VERSION = "cited-source-clock-v2"
 VISUAL_QUESTIONS = {
     "road_visible": "Is a road or road junction visible in `frame`?",
     "vehicle_visible": "Is at least one vehicle visibly present in `frame`?",
@@ -84,6 +85,55 @@ def _without_ids(value: object) -> object:
     return value
 
 
+def _cited_extractions(claim: Claim, records: list[dict]) -> list[dict]:
+    """Keep each cited source clock separate and exclude out-of-range events.
+
+    Unknown photo times remain unknown. Case placement estimates never determine
+    whether an extracted observation belongs inside a source citation.
+    """
+    cited = []
+    for ref in claim.source_refs:
+        for record in records:
+            if record.get("source_id") != ref.source_id:
+                continue
+            entry = {
+                key: value
+                for key, value in record.items()
+                if key not in {"source_id", "events"}
+            }
+            entry["citation"] = ref.model_dump(exclude={"source_id"})
+            timed = ref.source_start is not None or ref.source_end is not None
+            entry["citation_scope"] = (
+                "source_interval"
+                if timed
+                else "untimed_photo"
+                if record.get("source_type") == "photo"
+                else "whole_source_unspecified"
+            )
+            events = []
+            excluded_outside, excluded_unknown = 0, 0
+            for event in record.get("events", []):
+                if timed:
+                    start = (
+                        event.get("source_start") if isinstance(event, dict) else None
+                    )
+                    end = event.get("source_end") if isinstance(event, dict) else None
+                    if start is None or end is None:
+                        excluded_unknown += 1
+                        continue
+                    if (ref.source_start is not None and end < ref.source_start) or (
+                        ref.source_end is not None and start > ref.source_end
+                    ):
+                        excluded_outside += 1
+                        continue
+                events.append(event)
+            entry["events"] = events
+            entry["excluded_outside_citation"] = excluded_outside
+            entry["excluded_unknown_source_time"] = excluded_unknown
+            cited.append(entry)
+    return cited
+
+
 def _noul_questions(questions: dict[str, str]) -> dict[str, dict[str, str]]:
     return {
         key: {
@@ -131,6 +181,8 @@ class JevIntelligence:
             "state": _without_ids(state),
             "questions": questions,
         }
+        if role == "claim-support":
+            identity["question_version"] = CLAIM_QUESTION_VERSION
         if image is not None:
             identity["image"] = hashlib.sha256(image).hexdigest()
         path = self.cache_dir / f"{_key(identity)}.json"
@@ -299,22 +351,16 @@ class JevIntelligence:
 
         async def assess(index: int) -> ClaimAssessment | None:
             claim = analysis.summary[index]
-            cited_ids = {ref.source_id for ref in claim.source_refs}
-            cited = [
-                record for record in records if record.get("source_id") in cited_ids
-            ]
-            # Use cited extraction only. Nothing here can establish real-world truth.
+            # Source-local citations scope evidence; case-time estimates are not
+            # source clocks, and uncited events must not support the claim.
             state = {
                 "claim": claim.text,
-                "cited_extractions": [
-                    {key: value for key, value in record.items() if key != "source_id"}
-                    for record in cited
-                ],
+                "cited_extractions": _cited_extractions(claim, records),
             }
             questions = _noul_questions(
                 {
-                    "supported": "Is every material assertion in `claim` supported by `cited_extractions`? Treat extracted testimony as testimony, not verified fact. If evidence is absent, answer no.",
-                    "overclaim": "Does `claim` assert causation, timing, identity, certainty, or facts beyond what `cited_extractions` explicitly support?",
+                    "supported": "Is every material assertion in `claim` supported by events within each cited_extractions citation on that source clock? Excluded events and user-reported source_metadata cannot establish support. A partially overlapping event cannot establish a fact at an instant outside its observed range. Untimed photos establish no timing. Case placement and inferred alignment are estimates, never observed source time. Treat testimony as testimony and inferences as inferences, not verified observations. If evidence is absent or timing cannot be established, answer no.",
+                    "overclaim": "Does `claim` assert causation, source timing, cross-source alignment, identity, certainty, or facts beyond the observed events within cited_extractions citations? Treat user metadata as reported context, untimed photos as untimed, inferred case placement as uncertain, and testimony as testimony. Claims requiring excluded events or treating inference as observation overclaim the cited evidence.",
                 }
             )
             try:

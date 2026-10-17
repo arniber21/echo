@@ -222,7 +222,11 @@ def test_text_labels_and_claim_checks_only_receive_cited_extraction(tmp_path):
 
     asyncio.run(run())
     claim_state = next(state for state in states if "claim" in state)
-    assert claim_state["cited_extractions"] == [{"events": ["van is visible"]}]
+    assert claim_state["cited_extractions"][0]["events"] == ["van is visible"]
+    assert claim_state["cited_extractions"][0]["citation"] == {
+        "source_start": None,
+        "source_end": None,
+    }
 
 
 def test_ffmpeg_uses_source_seek_and_one_frame(monkeypatch):
@@ -301,3 +305,140 @@ def test_non_retryable_errors_and_audio_skip(tmp_path, status):
         await service.close()
 
     asyncio.run(run())
+
+
+def test_claim_support_cannot_use_relevant_event_outside_cited_source_range(tmp_path):
+    states = []
+
+    def handle(request):
+        body = json.loads(request.content)
+        state = body["state"]
+        states.append(state)
+        result = answer_body(body["questions"])
+        if "claim" in state:
+            # This test double makes support depend on which evidence the caller
+            # actually sends, rather than always returning a favorable answer.
+            has_contact = any(
+                event["title"] == "Contact"
+                for entry in state["cited_extractions"]
+                for event in entry["events"]
+            )
+            result["answers"]["supported"]["noul"] = float(has_contact)
+            result["answers"]["overclaim"]["noul"] = float(not has_contact)
+        return httpx.Response(200, json=result)
+
+    service = client(tmp_path, handle)
+    report = EvidenceIntelligence(
+        model="jev-1.14.0",
+        version="test",
+        status="complete",
+        sources=[SourceIntelligence(source_id="a")],
+    )
+    analysis = Analysis(
+        events=[],
+        summary=[
+            Claim(
+                text="Vehicles contact at source second 1",
+                source_refs=[SourceRef(source_id="a", source_start=0, source_end=2)],
+            )
+        ],
+    )
+    records = [
+        {
+            "source_id": "a",
+            "source_type": "video",
+            "events": [
+                {
+                    "title": "Driving",
+                    "source_start": 0,
+                    "source_end": 2,
+                    "evidence_type": "observation",
+                },
+                {
+                    "title": "Contact",
+                    "source_start": 8,
+                    "source_end": 9,
+                    "case_best": 1,
+                    "evidence_type": "observation",
+                },
+                {
+                    "title": "Unknown time",
+                    "source_start": None,
+                    "source_end": None,
+                    "evidence_type": "inference",
+                },
+            ],
+        }
+    ]
+
+    async def run():
+        result = await service.assess_analysis(analysis, records, report)
+        assert result.claims[0].supported_probability == 0
+        assert result.claims[0].overclaim_probability == 1
+        await service.close()
+
+    asyncio.run(run())
+    scoped = next(state for state in states if "claim" in state)["cited_extractions"][0]
+    assert scoped["citation"] == {"source_start": 0, "source_end": 2}
+    assert scoped["citation_scope"] == "source_interval"
+    assert scoped["excluded_outside_citation"] == 1
+    assert scoped["excluded_unknown_source_time"] == 1
+    assert [event["title"] for event in scoped["events"]] == ["Driving"]
+
+
+def test_photo_citations_preserve_unknown_time_and_inference_kind():
+    from rewind.intelligence.service import _cited_extractions
+
+    claim = Claim(
+        text="Damage appears visible", source_refs=[SourceRef(source_id="photo")]
+    )
+    records = [
+        {
+            "source_id": "photo",
+            "source_type": "photo",
+            "events": [
+                {
+                    "title": "Possible damage",
+                    "source_start": None,
+                    "source_end": None,
+                    "case_best": 7,
+                    "alignment_confidence": 0.2,
+                    "evidence_type": "inference",
+                }
+            ],
+        }
+    ]
+    entry = _cited_extractions(claim, records)[0]
+    assert entry["citation_scope"] == "untimed_photo"
+    assert entry["citation"] == {"source_start": None, "source_end": None}
+    assert entry["events"][0]["source_start"] is None
+    assert entry["events"][0]["evidence_type"] == "inference"
+    assert entry["events"][0]["alignment_confidence"] == 0.2
+
+
+def test_claim_prompt_version_does_not_invalidate_visual_cache(tmp_path, monkeypatch):
+    from rewind.intelligence import service as module
+
+    calls = []
+
+    def handle(request):
+        body = json.loads(request.content)
+        calls.append(body)
+        return httpx.Response(200, json=answer_body(body["questions"]))
+
+    service = client(tmp_path, handle)
+    questions = {"signal": {"type": "noul", "instructions": "Present?"}}
+
+    async def run():
+        await service._evaluate("visual", {"value": 1}, questions)
+        await service._evaluate("claim-support", {"value": 1}, questions)
+        monkeypatch.setattr(module, "CLAIM_QUESTION_VERSION", "next-question-version")
+        _, visual_usage = await service._evaluate("visual", {"value": 1}, questions)
+        _, claim_usage = await service._evaluate(
+            "claim-support", {"value": 1}, questions
+        )
+        assert visual_usage == 0 and claim_usage == 100
+        await service.close()
+
+    asyncio.run(run())
+    assert len(calls) == 3
