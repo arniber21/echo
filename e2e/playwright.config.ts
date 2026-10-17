@@ -1,6 +1,8 @@
 import { defineConfig } from '@playwright/test'
 
-const baseURL = 'http://127.0.0.1:3123'
+const webPort = process.env.REWIND_TEST_WEB_PORT ?? '3123'
+const apiPort = process.env.REWIND_TEST_API_PORT ?? '8123'
+const baseURL = `http://127.0.0.1:${webPort}`
 
 export default defineConfig({
   testDir: './tests',
@@ -23,8 +25,8 @@ export default defineConfig({
     stdout: 'ignore',
     stderr: 'pipe',
     env: {
-      REWIND_API_PORT: '8123',
-      REWIND_WEB_PORT: '3123',
+      REWIND_API_PORT: apiPort,
+      REWIND_WEB_PORT: webPort,
       REWIND_ANALYSIS_MODE: 'mock',
       REWIND_SEED_DEMO: 'true',
     },

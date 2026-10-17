@@ -1,55 +1,46 @@
-# Demo and rehearsal
+# Local verification
 
-## Before presenting
+1. Enter `devbox shell`, then run `just setup`, `just check`, and `just build`.
+2. Start the app with `just demo`. Open http://127.0.0.1:3000.
+3. A new workspace is empty. Use **Add footage & files** to select one incident
+   from `data/test-clips/`. Each clip depicts a different incident; use separate cases.
+4. Add a source label, recording details, or notes. Create the case and confirm
+   the video plays and the details are saved.
+5. Choose Live Gemini when testing real extraction, or Simulated analysis when
+   checking UI behavior without API usage. Click **Analyze evidence**.
+6. Select an event in **Unified timeline**. Confirm the player seeks to its source
+   time. Inspect **Analysis**, **Missing evidence**, and any **Contradictions**.
+7. Inspect **Working account** and its saved data. Reload: the committed account
+   should remain unchanged.
+8. Add further evidence from the same incident. The existing reconstruction remains
+   visible and marked for update. Click **Update reconstruction**, then use version
+   history to compare the exact previous evidence set and source details.
+9. Edit a source's details. Confirm the case needs an update while original bytes,
+   timestamps, and previous findings stay intact.
+10. Open the report and use Print → Save as PDF. Check every source is included and
+    estimates, reported metadata, and inference remain labeled.
 
-1. Run `devbox install`, then `devbox shell` and `just setup`.
-2. Run `just check`, `just build`, and `just demo-mock`.
-3. Open http://127.0.0.1:3000. Confirm the synthetic demo disclosure and four sources.
-4. Confirm the video and voice memo play with sound, and both damage images open.
-5. Run `just check-browser` against those servers.
-6. If presenting live AI: stop the mock servers, configure `backend/.env`, run
-   `just check-live`, inspect event times against the clips, then start `just demo`.
-   Existing cache allows another run with no Gemini requests.
+## Automated checks
 
-## Walkthrough (approximately three minutes)
+`just check-browser` starts separate test servers on ports 3123 and 8123. Both the
+Nuxt build output and SQLite database are temporary. User cases on port 3000 are
+never changed. Analysis is forced to mock mode, including explicit live requests.
 
-1. **Establish context:** “This is a synthetic example. Rewind organizes evidence;
-   findings remain unverified.” Show the source inventory.
-2. **Navigate the timeline:** Click the contact event at source time 8 seconds.
-   Play the video to hear the impact. Point out the range bar and source clock.
-3. **Compare accounts:** Click the testimony. Explain its source timestamp differs
-   from its estimated placement on the incident timeline. Hover the alignment
-   rationale and show the estimated badge.
-4. **Inspect disagreement:** Open the signal-color contradiction. Follow each
-   source reference: the video shows red; the synthetic narrator recalls green.
-   Neither account establishes legal responsibility.
-5. **Inspect gaps:** Show the missing original photo timestamps and the open-ended
-   post-incident photo placement. Open a damage image and its supported event.
-6. **Create a case:** Upload the four files in `demo/media/` (omit poster.jpg), click
-   Analyze, and observe progress through extraction and synthesis. Explain the
-   simulated-analysis notice when running without live AI.
-7. **Report:** Return to the pre-analyzed demo when using mock mode, open the report,
-   and use Print → Save as PDF. Show inventory and uncertainty labels.
+`just check-clips` requires at least twelve prepared incident clips and runs the
+real-file upload checks. Every clip is uploaded through the UI, annotated, checked
+against its hash and duration, decoded and played, analyzed in mock mode, selected
+on the timeline, and reloaded. These checks validate behavior, not model accuracy.
 
-## Failure recovery
+The fixture tests additionally cover video/audio seeking, photo support, gaps,
+contradictions, printable output, incremental evidence, saved memory, annotations,
+keyboard-accessible tabs, and layouts at 320, 375, 390, 414, and 768 pixels.
 
-- **Gemini unavailable:** The UI shows a readable error. Open the pre-analyzed demo
-  to continue with the committed evidence and analysis.
-- **No API key:** Use the synthetic demo to inspect meaningful prewritten findings;
-  new uploads use clearly labeled mock outputs.
-- **Offline:** Start the installed app normally and open the demo. No external
-  fonts, icons, or media should be required. Analyze previously cached live files
-  to demonstrate cached results.
-- **Playback issue:** Check the file codec in the browser. The committed video is
-  H.264/AAC and the voice memo is AAC in M4A.
-- **Port occupied:** The launcher names the occupied port. Stop that process or set
-  `REWIND_API_PORT` / `REWIND_WEB_PORT` before starting.
+## Live model verification
 
-## Acceptance evidence
+The configured API key has been checked with a real generation request. Multimodal
+analysis has also been exercised on video, audio, and photos, followed by a cached
+repeat. Live output must be reviewed against the source media; mocked action tests
+do not establish factual accuracy.
 
-The browser suite verifies multimodal upload and analysis, source-reference
-integrity, exact seek behavior, gap/contradiction rendering, report inventory,
-responsive layout, and the network-independent demo. Backend tests cover persistence,
-upload validation, retries, caching, and invalid source references. Live Gemini
-accuracy requires inspecting real output against the actual media; a mocked test
-cannot establish that.
+The follow-up eval in GitHub issue #13 compares partial footage with full context
+against human annotations, including source-clock mappings and unsupported claims.

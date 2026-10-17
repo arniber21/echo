@@ -52,3 +52,7 @@ check-clips:
 # Download and splice attributed real dashcam data under ignored data/footage/.
 prepare-footage:
     python3 scripts/prepare_dashcam.py
+
+# Reproduce the fifteen reviewed clips from the local compilation without importing cases.
+prepare-clips:
+    python3 scripts/prepare_local_test_set.py

@@ -106,6 +106,7 @@ new case. Cache hits do not call Gemini.
 | Analyze demo files with Gemini and print source times | `just check-live` |
 | Browser acceptance checks (isolated servers and database) | `just check-browser` |
 | Require and test every prepared real incident clip | `just check-clips` |
+| Prepare the fifteen reviewed local incident clips | `just prepare-clips` |
 | Prepare real dashcam incident and partial clips | `just prepare-footage` |
 
 `just check-live` is an explicit live check and fails if credentials or Gemini fail.
@@ -119,6 +120,12 @@ temporary SQLite and Nuxt build directories. They force simulated analysis and
 do not populate or modify the user workspace on port 3000. The prepared real clips
 are included automatically when their manifest exists; `just check-clips` requires
 that dataset and fails if it is missing. Browser action tests make no Gemini calls.
+
+The full-compilation test set is in `data/test-clips/`: fifteen numbered incident
+videos, an upload guide, source-clock mappings, hashes, and review sheets. See
+[reviewed selections and reproduction](demo/real-footage/test-set.md). Each clip
+shows a different incident and should be uploaded as a separate case. Preparing
+or testing the dataset does not import anything into the user database.
 
 Real dashcam test data is prepared under `data/footage/`. The 25-second
 `van-incident.mp4` and before/impact/after fragments preserve the original recording

@@ -80,13 +80,6 @@ watch(
         </article>
       </template>
     </div>
-    <div class="analysis-disclaimer">
-      <UIcon name="i-lucide-sparkles" />
-      <p>
-        AI-assisted reconstruction. All findings are unverified and require review. Rewind does not
-        determine fault.
-      </p>
-    </div>
   </section>
 </template>
 <style scoped>
