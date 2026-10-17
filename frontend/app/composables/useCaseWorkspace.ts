@@ -37,9 +37,10 @@ export function useCaseWorkspace() {
     }
   }
 
-  async function load(caseId = 'demo') {
+  async function load(caseId?: string) {
     await run(async (signal) => {
-      currentCase.value = await $fetch<Case>(`/api/cases/${encodeURIComponent(caseId)}`, { signal })
+      const path = caseId ? `/api/cases/${encodeURIComponent(caseId)}` : '/api/workspace'
+      currentCase.value = await $fetch<Case>(path, { signal })
       job.value = null
     })
   }
@@ -93,7 +94,7 @@ export function useCaseWorkspace() {
         job.value = await $fetch<Job>(`/api/jobs/${job.value.job_id}`, { signal })
       }
       if (job.value.status === 'failed')
-        throw new Error(job.value.error ?? 'Analysis failed. Retry or open the saved demo.')
+        throw new Error(job.value.error ?? 'Analysis failed. Retry or open the default case.')
       currentCase.value = await $fetch<Case>(`/api/cases/${encodeURIComponent(caseId)}`, { signal })
     })
   }

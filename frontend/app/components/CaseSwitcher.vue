@@ -24,9 +24,6 @@ function select(event: globalThis.Event) {
       @change="select"
     >
       <option value="" disabled>Cases</option>
-      <option v-if="!cases.some((item) => item.case_id === 'demo')" value="demo">
-        Synthetic demo
-      </option>
       <option v-for="item in cases" :key="item.case_id" :value="item.case_id">
         {{ item.title }}
       </option>

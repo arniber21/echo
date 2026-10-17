@@ -4,6 +4,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   ui: { fonts: false, colorMode: false },
   icon: {
+    localApiEndpoint: '/_icons',
     serverBundle: { collections: ['lucide'] },
     clientBundle: { scan: true },
     provider: 'server',

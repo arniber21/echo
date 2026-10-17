@@ -67,10 +67,14 @@ function selectEvent(event: Event) {
 watch(
   () => route.query.case,
   (caseId) => {
-    if (typeof caseId === 'string' && caseId !== currentCase.value?.case_id) void load(caseId)
+    if (typeof caseId === 'string') {
+      if (caseId !== currentCase.value?.case_id) void load(caseId)
+    } else {
+      void load()
+    }
   },
 )
-onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : 'demo'))
+onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : undefined))
 </script>
 <template>
   <div class="app-shell">
@@ -152,7 +156,7 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : '
         class="mb-5"
         ><template #actions
           ><UButton size="xs" color="error" variant="outline" @click="load()"
-            >Open saved demo</UButton
+            >Open default case</UButton
           ></template
         ></UAlert
       >
@@ -249,8 +253,8 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : '
       </div>
       <div v-else-if="!busy" class="empty-analysis">
         <h2>Bring the evidence together.</h2>
-        <p>Create a case or open the saved demonstration.</p>
-        <UButton @click="load()">Open demo</UButton>
+        <p>Create a case or open the default workspace case.</p>
+        <UButton @click="load()">Open default case</UButton>
       </div>
       <footer class="workspace-footer">
         <span>REWIND <span class="middot">/</span> FROM FRAGMENTS TO CONTEXT</span
