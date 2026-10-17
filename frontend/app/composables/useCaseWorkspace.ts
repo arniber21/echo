@@ -3,7 +3,8 @@ import type { Case, Job, SourceMetadata } from '../types/generated'
 export function useCaseWorkspace() {
   const currentCase = shallowRef<Case | null>(null)
   const job = shallowRef<Job | null>(null)
-  const busy = ref(false)
+  // Server-rendered actions stay disabled until hydration and the initial load finish.
+  const busy = ref(true)
   const error = ref('')
   let controller: AbortController | null = null
 
