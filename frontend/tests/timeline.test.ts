@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { Event, MediaFile } from '../app/types/generated'
+import { emptySourceMetadata } from '../app/utils/evidence'
 import {
   caseExtent,
   eventSourceReference,
@@ -78,6 +79,7 @@ test('primary video is deterministic across upload order', () => {
     size_bytes: 100,
     duration_seconds: 20,
     captured_at: null,
+    metadata: emptySourceMetadata(),
   })
   const first = makeVideo('video-a', 'aaaa')
   const second = makeVideo('video-b', 'bbbb')

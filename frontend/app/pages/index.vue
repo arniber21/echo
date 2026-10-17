@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import type { Event, MediaFile, SourceRef } from '../types/generated'
+import type { Event, MediaFile, SourceRef, SourceMetadata } from '../types/generated'
+import type UploadCase from '../components/UploadCase.vue'
+import type EvidenceMetadata from '../components/EvidenceMetadata.vue'
 import { eventSourceReference, formatTime, placementLabel } from '../utils/timeline'
-const { currentCase, job, busy, error, load, upload, appendEvidence, analyze } = useCaseWorkspace()
+const { currentCase, job, busy, error, load, upload, appendEvidence, saveSourceMetadata, analyze } =
+  useCaseWorkspace()
 const { selectedRevision, view, displayedAnalysis, media, needsUpdate } =
   useReconstructionHistory(currentCase)
 const clockMedia = computed(() =>
@@ -9,6 +12,20 @@ const clockMedia = computed(() =>
     ? media.value.filter((source) => view.value?.sourceIds.includes(source.source_id))
     : media.value,
 )
+const intake = useTemplateRef<InstanceType<typeof UploadCase>>('intake')
+const detailsEditor = useTemplateRef<InstanceType<typeof EvidenceMetadata>>('detailsEditor')
+const canAppend = computed(() => Boolean(currentCase.value && currentCase.value.case_id !== 'demo'))
+const canEditDetails = computed(() => canAppend.value && selectedRevision.value === null)
+function openIntake(files: File[] = []) {
+  if (!busy.value) intake.value?.openWithFiles(files)
+}
+function ingestEvidence(files: File[], title: string, metadata: SourceMetadata[]) {
+  if (canAppend.value) void appendEvidence(files, metadata)
+  else void upload(files, title, metadata)
+}
+function editSource(file: MediaFile) {
+  if (canEditDetails.value && !busy.value) detailsEditor.value?.edit(file)
+}
 const route = useRoute()
 const router = useRouter()
 const selectedSourceId = ref<string | null>(null)
@@ -34,7 +51,9 @@ const stageLabels: Record<string, string> = {
   failed: 'Analysis interrupted',
 }
 watch(currentCase, (value) => {
-  selectedSourceId.value = value?.media_files[0]?.source_id ?? null
+  if (!value?.media_files.some((source) => source.source_id === selectedSourceId.value)) {
+    selectedSourceId.value = value?.media_files[0]?.source_id ?? null
+  }
   selectedEvent.value = null
   reference.value = null
   if (value && route.query.case !== value.case_id) {
@@ -86,9 +105,17 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
       >
       <div class="header-actions">
         <span class="local-label"><span class="status-dot" /> LOCAL WORKSPACE</span
-        ><UploadCase :busy="busy" @upload="upload" />
+        ><UploadCase
+          ref="intake"
+          :busy="busy"
+          :append="canAppend"
+          prominent
+          label="Add footage & files"
+          @upload="ingestEvidence"
+        /><UploadCase :busy="busy" label="New case" @upload="upload" />
       </div>
     </header>
+    <EvidenceMetadata ref="detailsEditor" :busy="busy" @save="saveSourceMetadata" />
     <main class="workspace">
       <div class="breadcrumb">
         <CaseSwitcher :current-id="currentCase?.case_id" :busy="busy" @select="load" />
@@ -102,12 +129,6 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
           <p>A clearer picture of what happened. Grounded in what you have.</p>
         </div>
         <div class="case-actions">
-          <UploadCase
-            v-if="currentCase && currentCase.case_id !== 'demo'"
-            append
-            :busy="busy"
-            @upload="appendEvidence"
-          />
           <UButton
             v-if="currentCase?.analysis"
             :to="`/report?case=${currentCase.case_id}`"
@@ -196,6 +217,10 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
           <EvidenceLibrary
             :media="media"
             :selected-id="selectedMedia?.source_id"
+            :busy="busy"
+            :editable="canEditDetails"
+            @ingest="openIntake"
+            @edit="editSource"
             @select="selectFile"
           />
           <div class="workspace-note">
@@ -208,6 +233,13 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
         </aside>
         <div class="reconstruction">
           <EvidencePlayer :media="selectedMedia" :reference="reference" />
+          <SourceDetails
+            v-if="selectedMedia"
+            :source="selectedMedia"
+            :editable="canEditDetails"
+            :busy="busy"
+            @edit="editSource"
+          />
           <div v-if="selectedEvent" class="event-detail">
             <div class="section-heading">
               <h3>{{ selectedEvent.title }}</h3>

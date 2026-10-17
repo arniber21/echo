@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Case } from '../types/generated'
+import { sourceDetailsChanged } from '../utils/evidence'
 import {
   formatCountChange,
   historyNewestFirst,
@@ -9,6 +10,7 @@ import {
 const props = defineProps<{ incident: Case; selectedRevision: number | null; busy: boolean }>()
 const emit = defineEmits<{ 'update:selectedRevision': [revision: number | null] }>()
 const pending = computed(() => pendingSourceIds(props.incident).length)
+const detailsChanged = computed(() => sourceDetailsChanged(props.incident, pending.value))
 const stale = computed(
   () =>
     props.incident.analysis &&
@@ -65,10 +67,11 @@ function select(event: globalThis.Event) {
     </div>
     <div v-else-if="stale" class="revision-notice pending">
       <UIcon name="i-lucide-files" /><span
-        ><strong
-          >{{ pending }} new {{ pending === 1 ? 'source' : 'sources' }} · reconstruction needs
-          update.</strong
-        >
+        ><strong>{{
+          detailsChanged
+            ? 'Source details changed · reconstruction needs update.'
+            : `${pending} new ${pending === 1 ? 'source' : 'sources'} · reconstruction needs update.`
+        }}</strong>
         Your previous findings remain visible while you update.</span
       >
     </div>

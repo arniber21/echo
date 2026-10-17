@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { Analysis, Case, MediaFile } from '../app/types/generated'
+import { emptySourceMetadata, sourceDetailsChanged } from '../app/utils/evidence'
 import {
   formatCountChange,
   pendingSourceIds,
@@ -25,6 +26,7 @@ const video: MediaFile = {
   size_bytes: 100,
   duration_seconds: 20,
   captured_at: null,
+  metadata: emptySourceMetadata(),
 }
 const photo: MediaFile = {
   ...video,
@@ -47,6 +49,7 @@ function incident(): Case {
     analyzed_revision: 1,
     analyzed_at: '2026-10-17T00:01:00Z',
     analyzed_source_ids: ['video'],
+    analyzed_media_files: [video],
     analysis_history: [],
     memory: null,
   }
@@ -65,7 +68,14 @@ describe('progressive reconstruction', () => {
   test('an older snapshot shows only the evidence available at that time', () => {
     const value = incident()
     value.analysis_history = [
-      { revision: 1, created_at: '2026-10-17T00:01:00Z', media_source_ids: ['video'], analysis },
+      {
+        revision: 1,
+        created_at: '2026-10-17T00:01:00Z',
+        media_source_ids: ['video'],
+        media_count: 1,
+        media_files: [video],
+        analysis,
+      },
     ]
     const view = reconstructionView(value, 1)
     expect(view.media.map((item) => item.source_id)).toEqual(['video'])
@@ -76,7 +86,14 @@ describe('progressive reconstruction', () => {
     value.analyzed_revision = 2
     value.analyzed_source_ids = ['video', 'photo']
     value.analysis_history = [
-      { revision: 1, created_at: '2026-10-17T00:01:00Z', media_source_ids: ['video'], analysis },
+      {
+        revision: 1,
+        created_at: '2026-10-17T00:01:00Z',
+        media_source_ids: ['video'],
+        media_count: 1,
+        media_files: [video],
+        analysis,
+      },
     ]
     expect(reconstructionDelta(value)).toEqual({
       previousRevision: 1,
@@ -93,4 +110,37 @@ describe('progressive reconstruction', () => {
   test('an invalid history selection safely shows the current reconstruction', () => {
     expect(reconstructionView(incident(), 99).historical).toBe(false)
   })
+})
+
+test('metadata-only changes need an update even when no new source was added', () => {
+  const value = incident()
+  value.media_files = [video]
+  expect(pendingSourceIds(value)).toEqual([])
+  expect(sourceDetailsChanged(value, 0)).toBe(true)
+})
+
+test('previous snapshots retain the original source annotations', () => {
+  const value = incident()
+  value.media_files = [
+    { ...video, metadata: { ...emptySourceMetadata(), location: 'Updated location' } },
+  ]
+  value.analysis_history = [
+    {
+      revision: 1,
+      created_at: '2026-10-17T00:01:00Z',
+      media_source_ids: ['video'],
+      media_count: 1,
+      media_files: [video],
+      analysis,
+    },
+  ]
+  expect(reconstructionView(value, 1).media[0]?.metadata.location).toBe('')
+  expect(reconstructionView(value, null).media[0]?.metadata.location).toBe('Updated location')
+})
+
+test('new intake files have independent metadata values', () => {
+  const first = emptySourceMetadata()
+  const second = emptySourceMetadata()
+  first.label = 'Front camera'
+  expect(second.label).toBe('')
 })

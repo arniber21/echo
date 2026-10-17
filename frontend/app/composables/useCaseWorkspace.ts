@@ -1,4 +1,4 @@
-import type { Case, Job } from '../types/generated'
+import type { Case, Job, SourceMetadata } from '../types/generated'
 
 export function useCaseWorkspace() {
   const currentCase = shallowRef<Case | null>(null)
@@ -45,28 +45,42 @@ export function useCaseWorkspace() {
     })
   }
 
-  async function upload(files: File[], title: string) {
+  async function upload(files: File[], title: string, metadata: SourceMetadata[] = []) {
     await run(async (signal) => {
       const body = new FormData()
       files.forEach((file) => body.append('files', file))
       body.append('title', title.trim() || 'Untitled incident')
+      if (metadata.length) body.append('metadata', JSON.stringify(metadata))
       currentCase.value = await $fetch<Case>('/api/cases', { method: 'POST', body, signal })
       job.value = null
     })
   }
 
-  async function appendEvidence(files: File[]) {
+  async function appendEvidence(files: File[], metadata: SourceMetadata[] = []) {
     if (!currentCase.value || !files.length) return
     const caseId = currentCase.value.case_id
     job.value = null
     await run(async (signal) => {
       const body = new FormData()
       files.forEach((file) => body.append('files', file))
+      if (metadata.length) body.append('metadata', JSON.stringify(metadata))
       currentCase.value = await $fetch<Case>(`/api/cases/${encodeURIComponent(caseId)}/media`, {
         method: 'POST',
         body,
         signal,
       })
+    })
+  }
+
+  async function saveSourceMetadata(sourceId: string, metadata: SourceMetadata) {
+    if (!currentCase.value) return
+    const caseId = currentCase.value.case_id
+    job.value = null
+    await run(async (signal) => {
+      currentCase.value = await $fetch<Case>(
+        `/api/cases/${encodeURIComponent(caseId)}/media/${encodeURIComponent(sourceId)}`,
+        { method: 'PATCH', body: metadata, signal },
+      )
     })
   }
 
@@ -100,5 +114,15 @@ export function useCaseWorkspace() {
   }
 
   onScopeDispose(() => controller?.abort())
-  return { currentCase, job, busy, error, load, upload, appendEvidence, analyze }
+  return {
+    currentCase,
+    job,
+    busy,
+    error,
+    load,
+    upload,
+    appendEvidence,
+    saveSourceMetadata,
+    analyze,
+  }
 }

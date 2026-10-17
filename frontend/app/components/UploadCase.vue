@@ -1,55 +1,96 @@
 <script setup lang="ts">
-const props = defineProps<{ busy: boolean; append?: boolean }>()
-const emit = defineEmits<{ upload: [files: File[], title: string] }>()
+import type { SourceMetadata } from '../types/generated'
+import { emptySourceMetadata } from '../utils/evidence'
+const props = withDefaults(
+  defineProps<{ busy: boolean; append?: boolean; label?: string; prominent?: boolean }>(),
+  { append: false, prominent: false, label: undefined },
+)
+const emit = defineEmits<{ upload: [files: File[], title: string, metadata: SourceMetadata[]] }>()
+interface EvidenceDraft {
+  file: File
+  metadata: SourceMetadata
+}
 const open = ref(false)
 const title = ref('')
-const files = ref<File[]>([])
+const drafts = ref<EvidenceDraft[]>([])
 const input = ref<HTMLInputElement | null>(null)
-watch(open, (value) => {
-  if (value) files.value = []
-})
+const dragging = ref(false)
+function setFiles(files: File[]) {
+  drafts.value = files.map((file) => ({ file, metadata: emptySourceMetadata() }))
+}
+function openWithFiles(files: File[] = []) {
+  setFiles(files)
+  open.value = true
+}
 function pick(event: globalThis.Event) {
-  if (event.target instanceof HTMLInputElement) files.value = Array.from(event.target.files ?? [])
+  if (event.target instanceof HTMLInputElement) setFiles(Array.from(event.target.files ?? []))
 }
 function drop(event: DragEvent) {
-  files.value = Array.from(event.dataTransfer?.files ?? [])
+  dragging.value = false
+  setFiles(Array.from(event.dataTransfer?.files ?? []))
+}
+function removeFile(index: number) {
+  drafts.value.splice(index, 1)
 }
 function submit() {
-  if (files.value.length && !props.busy) {
-    emit('upload', files.value, title.value)
+  if (drafts.value.length && !props.busy) {
+    emit(
+      'upload',
+      drafts.value.map((draft) => draft.file),
+      title.value,
+      drafts.value.map((draft) => ({ ...draft.metadata })),
+    )
     open.value = false
   }
 }
+defineExpose({ openWithFiles })
 </script>
 <template>
   <UModal
     v-model:open="open"
-    :title="append ? 'Add evidence to this case' : 'Start a new reconstruction'"
+    :title="append ? 'Add footage & files' : 'Create a case with your evidence'"
     :description="
       append
-        ? 'Keep the same case. Your existing reconstruction stays available until you update it.'
-        : 'Start with one video, or bring several sources together. You can add more evidence later.'
+        ? 'Add sources to this case. Existing findings stay available until you update the reconstruction.'
+        : 'Start with one video or several files. You can add more evidence and context later.'
     "
-    ><UButton :disabled="busy" icon="i-lucide-plus" color="neutral" variant="outline">{{
-      append ? 'Add evidence' : 'New case'
-    }}</UButton
-    ><template #body
-      ><div class="upload-form">
+    :ui="{ content: 'sm:max-w-2xl' }"
+  >
+    <UButton
+      :disabled="busy"
+      :icon="prominent ? 'i-lucide-cloud-upload' : 'i-lucide-plus'"
+      :color="prominent ? 'primary' : 'neutral'"
+      :variant="prominent ? 'solid' : 'ghost'"
+      :size="prominent ? 'lg' : 'md'"
+      @click="setFiles([])"
+      >{{ label ?? (append ? 'Add footage & files' : 'New case') }}</UButton
+    >
+    <template #body>
+      <div class="upload-form">
         <UFormField v-if="!append" label="Case title"
           ><UInput
             v-model="title"
             placeholder="e.g. Intersection incident · October 17"
-            class="w-full" /></UFormField
-        ><button
+            class="w-full"
+        /></UFormField>
+        <div
           class="upload-drop"
-          type="button"
-          @click="input?.click()"
-          @dragover.prevent
+          :class="{ dragging }"
+          @dragover.prevent="dragging = true"
+          @dragleave.prevent="dragging = false"
           @drop.prevent="drop"
         >
-          <UIcon name="i-lucide-cloud-upload" /><strong>Drop your evidence here</strong
-          ><span>or choose video, audio, and photos</span></button
-        ><input
+          <UIcon name="i-lucide-cloud-upload" /><strong>Drop footage and files here</strong
+          ><span>Video, audio recordings, and photos · select one or many</span>
+          <UButton
+            icon="i-lucide-folder-open"
+            color="neutral"
+            variant="outline"
+            @click="input?.click()"
+            >Browse files</UButton
+          >
+        </div>
+        <input
           ref="input"
           type="file"
           multiple
@@ -58,27 +99,57 @@ function submit() {
           aria-label="Choose evidence files"
           @change="pick"
         />
-        <ul v-if="files.length" class="upload-files">
-          <li v-for="file in files" :key="file.name">
-            <UIcon name="i-lucide-file" />{{ file.name
-            }}<span>{{ (file.size / 1024 / 1024).toFixed(1) }} MB</span>
-          </li>
-        </ul>
-        <p class="section-note">
-          Use synthetic or consented media. Originals are stored locally. Live analysis sends the
-          selected media to Gemini.
+        <div v-if="drafts.length" class="upload-review">
+          <div class="upload-review-heading">
+            <strong
+              >{{ drafts.length }} {{ drafts.length === 1 ? 'file' : 'files' }} selected</strong
+            ><span>Add optional details now or edit them later.</span>
+          </div>
+          <details
+            v-for="(draft, index) in drafts"
+            :key="`${draft.file.name}-${index}`"
+            class="upload-source-details"
+          >
+            <summary>
+              <UIcon name="i-lucide-file" /><span
+                ><strong>{{ draft.file.name }}</strong
+                ><small
+                  >{{ (draft.file.size / 1024 / 1024).toFixed(1) }} MB · Add source details</small
+                ></span
+              ><UIcon name="i-lucide-chevron-down" />
+            </summary>
+            <div class="upload-source-fields">
+              <SourceMetadataFields
+                v-model="draft.metadata"
+                :source-name="draft.file.name"
+              /><UButton
+                color="error"
+                variant="ghost"
+                size="sm"
+                icon="i-lucide-trash-2"
+                @click="removeFile(index)"
+                >Remove file</UButton
+              >
+            </div>
+          </details>
+        </div>
+        <p class="upload-privacy">
+          <UIcon name="i-lucide-shield-check" /><span
+            >Original files stay local. Live analysis sends selected media and source details to
+            Gemini. Use synthetic or consented media.</span
+          >
         </p>
         <UButton
-          :disabled="!files.length"
+          :disabled="!drafts.length"
           :loading="busy"
           size="lg"
           block
           icon="i-lucide-arrow-right"
           @click="submit"
-          >{{ append ? 'Add' : 'Create case with' }} {{ files.length || 'your' }}
-          {{ files.length === 1 ? 'file' : 'files' }}</UButton
+          >{{ append ? 'Add' : 'Create case with' }} {{ drafts.length || 'your' }}
+          {{ drafts.length === 1 ? 'file' : 'files' }}</UButton
         >
-      </div></template
-    ></UModal
-  >
+      </div>
+    </template>
+  </UModal>
 </template>

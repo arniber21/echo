@@ -36,9 +36,11 @@ export function reconstructionView(
         analysis: snapshot.analysis,
         revision: snapshot.revision,
         sourceIds: snapshot.media_source_ids,
-        media: incident.media_files.filter((source) =>
-          snapshot.media_source_ids.includes(source.source_id),
-        ),
+        media: snapshot.media_files.length
+          ? snapshot.media_files
+          : incident.media_files.filter((source) =>
+              snapshot.media_source_ids.includes(source.source_id),
+            ),
         historical: true,
       }
     : {
