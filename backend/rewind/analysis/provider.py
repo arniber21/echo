@@ -19,22 +19,41 @@ logger = logging.getLogger(__name__)
 def _validation_feedback(error: ValueError) -> str:
     """Describe the failing rule without echoing model output or uploaded content."""
     if isinstance(error, ValidationError):
-        codes = sorted({item["type"] for item in error.errors(include_input=False, include_context=False, include_url=False)})
+        codes = sorted(
+            {
+                item["type"]
+                for item in error.errors(
+                    include_input=False, include_context=False, include_url=False
+                )
+            }
+        )
         return "JSON schema validation failed: " + ", ".join(codes[:8])
     # These messages are fixed application constraints; all other errors stay generic.
     safe_rules = {
-        "Photos do not have seek times", "Timed extraction requires source times",
-        "Extraction exceeds source duration", "Synthesis must retain all and only extracted events",
-        "Synthesis changed source evidence or seek timestamps", "An event cannot support itself",
-        "Case placement must be nonnegative", "Primary video must anchor the case clock",
-        "Primary video needs a finite uncertainty window", "Primary video uncertainty must remain tight",
+        "Photos do not have seek times",
+        "Timed extraction requires source times",
+        "Extraction exceeds source duration",
+        "Synthesis must retain all and only extracted events",
+        "Synthesis changed source evidence or seek timestamps",
+        "An event cannot support itself",
+        "Case placement must be nonnegative",
+        "Primary video must anchor the case clock",
+        "Primary video needs a finite uncertainty window",
+        "Primary video uncertainty must remain tight",
         "Photos without relative capture metadata need an open end",
-        "Unmatched audio must retain a wide uncertainty window", "Photo references cannot contain seek times",
-        "Source timestamp exceeds media duration", "Unknown supported event reference",
-        "Contradictions must reference both conflicting sources", "Event source type does not match media",
+        "Unmatched audio must retain a wide uncertainty window",
+        "Photo references cannot contain seek times",
+        "Source timestamp exceeds media duration",
+        "Unknown supported event reference",
+        "Contradictions must reference both conflicting sources",
+        "Event source type does not match media",
     }
     reason = str(error)
-    return reason if reason in safe_rules else "Evidence reference or timing validation failed"
+    return (
+        reason
+        if reason in safe_rules
+        else "Evidence reference or timing validation failed"
+    )
 
 
 class InvalidModelOutput(ValueError):
@@ -46,7 +65,9 @@ class GeminiProvider:
         self.settings = settings
         self.client = genai.Client(
             api_key=settings.api_key,
-            http_options=types.HttpOptions(timeout=int(settings.request_timeout_seconds * 1000)),
+            http_options=types.HttpOptions(
+                timeout=int(settings.request_timeout_seconds * 1000)
+            ),
         )
 
     async def close(self) -> None:
@@ -77,9 +98,12 @@ class GeminiProvider:
                         raise RuntimeError("Gemini could not process the media file")
                     if not uploaded.uri:
                         raise RuntimeError("Gemini returned a file without a URI")
-                    contents.append(types.Part.from_uri(
-                        file_uri=uploaded.uri, mime_type=mime_type or uploaded.mime_type
-                    ))
+                    contents.append(
+                        types.Part.from_uri(
+                            file_uri=uploaded.uri,
+                            mime_type=mime_type or uploaded.mime_type,
+                        )
+                    )
             feedback = ""
             for attempt in range(2):
                 instruction = prompt
@@ -103,12 +127,16 @@ class GeminiProvider:
                 except ValueError as error:
                     feedback = _validation_feedback(error)
                     if attempt == 1:
-                        raise InvalidModelOutput(f"Gemini returned invalid evidence data after one retry: {feedback}") from None
+                        raise InvalidModelOutput(
+                            f"Gemini returned invalid evidence data after one retry: {feedback}"
+                        ) from None
             raise AssertionError("unreachable")
         finally:
             if uploaded_name:
                 try:
                     async with asyncio.timeout(15):
                         await self.client.aio.files.delete(name=uploaded_name)
-                except Exception:
-                    logger.warning("Could not delete temporary Gemini file; provider retention policy applies")
+                except Exception:  # noqa: BLE001 - cleanup must never hide the original failure
+                    logger.warning(
+                        "Could not delete temporary Gemini file; provider retention policy applies"
+                    )

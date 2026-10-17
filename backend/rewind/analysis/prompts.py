@@ -12,7 +12,9 @@ inference, and testimony (what someone alleges, not established fact). Be concis
 
 
 def extraction_prompt(source_type: str, duration: float | None) -> str:
-    return POLICY + f"""
+    return (
+        POLICY
+        + f"""
 Extract identifiable events from this {source_type} file only.
 The file duration in seconds is {duration!r}; do not exceed it when known.
 Use numeric seconds measured from THIS file's start, never a merged timeline.
@@ -24,9 +26,12 @@ Do not infer photo capture time from the picture. Do not assume an incident occu
 Timed events require both source_start and source_end, with 0 <= start <= end.
 Return events and limitations as the specified JSON object, without Markdown.
 """
+    )
 
 
-SYNTHESIS_PROMPT = POLICY + """
+SYNTHESIS_PROMPT = (
+    POLICY
+    + """
 Synthesize ONLY the supplied extraction records. The first video source is the case clock:
 case t=0 is that video's start, not audio start. Preserve every extracted event's event_id,
 source_id, source_type, source_start, source_end and evidence_type exactly. Include all extracted
@@ -59,3 +64,4 @@ an event absent from a limited video is not necessarily a contradiction. Empty a
 Set mode='live'. Return the specified Analysis JSON object without Markdown.
 Input:
 """
+)

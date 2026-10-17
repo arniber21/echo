@@ -31,9 +31,12 @@ class ExtractedEvent(BaseModel):
     def ordered_times(self) -> "ExtractedEvent":
         if (self.source_start is None) != (self.source_end is None):
             raise ValueError("source times must both be present or absent")
-        if self.source_start is not None and self.source_end is not None:
-            if not 0 <= self.source_start <= self.source_end:
-                raise ValueError("source times must be nonnegative and ordered")
+        if (
+            self.source_start is not None
+            and self.source_end is not None
+            and not 0 <= self.source_start <= self.source_end
+        ):
+            raise ValueError("source times must be nonnegative and ordered")
         return self
 
 

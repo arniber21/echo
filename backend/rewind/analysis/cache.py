@@ -23,7 +23,9 @@ class JsonCache:
 
     def read(self, key: str, schema: type[Model]) -> Model | None:
         try:
-            return schema.model_validate_json((self.directory / f"{key}.json").read_text())
+            return schema.model_validate_json(
+                (self.directory / f"{key}.json").read_text()
+            )
         except (OSError, ValueError, ValidationError):
             return None
 
@@ -31,7 +33,9 @@ class JsonCache:
         self.directory.mkdir(parents=True, exist_ok=True)
         temporary: str | None = None
         try:
-            with NamedTemporaryFile(mode="w", dir=self.directory, delete=False) as stream:
+            with NamedTemporaryFile(
+                mode="w", dir=self.directory, delete=False
+            ) as stream:
                 temporary = stream.name
                 stream.write(result.model_dump_json())
                 stream.flush()

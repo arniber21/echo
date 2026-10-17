@@ -15,7 +15,10 @@ def validate_extraction(result: Extraction, media: MediaFile) -> None:
         else:
             if event.source_start is None or event.source_end is None:
                 raise ValueError("Timed extraction requires source times")
-            if media.duration_seconds is not None and event.source_end > media.duration_seconds + 0.1:
+            if (
+                media.duration_seconds is not None
+                and event.source_end > media.duration_seconds + 0.1
+            ):
                 raise ValueError("Extraction exceeds source duration")
 
 
@@ -31,11 +34,21 @@ def validate_synthesis(
     if {event.event_id for event in result.events} != set(expected):
         raise ValueError("Synthesis must retain all and only extracted events")
     source_map = {source.source_id: source for source in media}
-    anchor = next((source for source in media if source.source_type == SourceType.VIDEO), None)
+    anchor = next(
+        (source for source in media if source.source_type == SourceType.VIDEO), None
+    )
     for event in result.events:
         source_id, extracted = expected[event.event_id]
-        if (event.source_id, event.source_start, event.source_end, event.evidence_type) != (
-            source_id, extracted.source_start, extracted.source_end, extracted.evidence_type
+        if (
+            event.source_id,
+            event.source_start,
+            event.source_end,
+            event.evidence_type,
+        ) != (
+            source_id,
+            extracted.source_start,
+            extracted.source_end,
+            extracted.evidence_type,
         ):
             raise ValueError("Synthesis changed source evidence or seek timestamps")
         if event.event_id in event.supports:
@@ -47,17 +60,31 @@ def validate_synthesis(
                 raise ValueError("Primary video must anchor the case clock")
             if event.case_min is None or event.case_max is None:
                 raise ValueError("Primary video needs a finite uncertainty window")
-            if event.case_best - event.case_min > 0.51 or event.case_max - event.case_best > 0.51:
+            if (
+                event.case_best - event.case_min > 0.51
+                or event.case_max - event.case_best > 0.51
+            ):
                 raise ValueError("Primary video uncertainty must remain tight")
         source = source_map[source_id]
-        if source.source_type == SourceType.PHOTO:
-            if not (source.captured_at and anchor and anchor.captured_at) and event.case_max is not None:
-                raise ValueError("Photos without relative capture metadata need an open end")
-        if source.source_type == SourceType.AUDIO and event.alignment_confidence <= 0.3:
-            if event.case_min is not None and event.case_max is not None and event.case_max - event.case_min < 10:
-                raise ValueError("Unmatched audio must retain a wide uncertainty window")
+        if (
+            source.source_type == SourceType.PHOTO
+            and not (source.captured_at and anchor and anchor.captured_at)
+            and event.case_max is not None
+        ):
+            raise ValueError(
+                "Photos without relative capture metadata need an open end"
+            )
+        if (
+            source.source_type == SourceType.AUDIO
+            and event.alignment_confidence <= 0.3
+            and event.case_min is not None
+            and event.case_max is not None
+            and event.case_max - event.case_min < 10
+        ):
+            raise ValueError("Unmatched audio must retain a wide uncertainty window")
     for item in [*result.summary, *result.missing_evidence, *result.contradictions]:
         for ref in item.source_refs:
-            if source_map[ref.source_id].source_type == SourceType.PHOTO:
-                if ref.source_start is not None or ref.source_end is not None:
-                    raise ValueError("Photo references cannot contain seek times")
+            if source_map[ref.source_id].source_type == SourceType.PHOTO and (
+                ref.source_start is not None or ref.source_end is not None
+            ):
+                raise ValueError("Photo references cannot contain seek times")
