@@ -1,0 +1,22 @@
+backend/tests/test_api.py
+  s_4d6956e576b617::t_62ab7fcacf7397 233-272
+backend/rewind/main.py
+  s_4d6956e576b617::t_62ab7fcacf7397 242-243,250
+  s_4d6956e576b617::t_6ddcb2a885e3ed 244-248
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "557ff9cbde7d175b5f9274f6374f16ea9f28ed16",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
