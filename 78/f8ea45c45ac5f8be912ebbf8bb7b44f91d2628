@@ -1,0 +1,26 @@
+README.md
+  s_4d6956e576b617::t_26b144c2702928 109,124-128
+  s_4d6956e576b617::t_b4769e05f58de8 129
+e2e/playwright.config.ts
+  s_4d6956e576b617::t_9e7b991b173143 3-5,28-29
+docs/demo-script.md
+  s_4d6956e576b617::t_7b4870f5392d59 1-46
+justfile
+  s_4d6956e576b617::t_26b144c2702928 55-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "78f8ea45c45ac5f8be912ebbf8bb7b44f91d2628",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
