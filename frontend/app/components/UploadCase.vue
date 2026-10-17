@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import type { SourceMetadata } from '../types/generated'
-import { emptySourceMetadata } from '../utils/evidence'
+import { emptySourceMetadata, type EvidenceUploadResult } from '../utils/evidence'
 const props = withDefaults(
-  defineProps<{ busy: boolean; append?: boolean; label?: string; prominent?: boolean }>(),
+  defineProps<{
+    busy: boolean
+    append?: boolean
+    label?: string
+    prominent?: boolean
+    submitEvidence: (
+      files: File[],
+      title: string,
+      metadata: SourceMetadata[],
+    ) => Promise<EvidenceUploadResult>
+  }>(),
   { append: false, prominent: false, label: undefined },
 )
-const emit = defineEmits<{ upload: [files: File[], title: string, metadata: SourceMetadata[]] }>()
 interface EvidenceDraft {
   file: File
   metadata: SourceMetadata
@@ -15,6 +24,8 @@ const title = ref('')
 const drafts = ref<EvidenceDraft[]>([])
 const input = ref<HTMLInputElement | null>(null)
 const dragging = ref(false)
+const submissionError = ref('')
+const submitting = ref(false)
 function setFiles(files: File[]) {
   drafts.value = files.map((file) => ({ file, metadata: emptySourceMetadata() }))
 }
@@ -30,7 +41,7 @@ function addFiles(files: File[]) {
   }
 }
 function openWithFiles(files: File[] = []) {
-  setFiles(files)
+  addFiles(files)
   open.value = true
 }
 function pick(event: globalThis.Event) {
@@ -41,20 +52,33 @@ function pick(event: globalThis.Event) {
 }
 function drop(event: DragEvent) {
   dragging.value = false
+  if (props.busy) return
   addFiles(Array.from(event.dataTransfer?.files ?? []))
 }
 function removeFile(index: number) {
   drafts.value.splice(index, 1)
 }
-function submit() {
-  if (drafts.value.length && !props.busy) {
-    emit(
-      'upload',
+async function submit() {
+  if (!drafts.value.length || props.busy || submitting.value) return
+  submissionError.value = ''
+  submitting.value = true
+  try {
+    const result = await props.submitEvidence(
       drafts.value.map((draft) => draft.file),
       title.value,
       drafts.value.map((draft) => ({ ...draft.metadata })),
     )
+    if (!result.success) {
+      submissionError.value = result.error || 'Upload failed. Review the selected files and retry.'
+      return
+    }
     open.value = false
+    setFiles([])
+    title.value = ''
+  } catch {
+    submissionError.value = 'Upload failed. Review the selected files and retry.'
+  } finally {
+    submitting.value = false
   }
 }
 defineExpose({ openWithFiles })
@@ -76,11 +100,19 @@ defineExpose({ openWithFiles })
       :color="prominent ? 'primary' : 'neutral'"
       :variant="prominent ? 'solid' : 'ghost'"
       :size="prominent ? 'lg' : 'md'"
-      @click="setFiles([])"
       >{{ label ?? (append ? 'Add footage & files' : 'New case') }}</UButton
     >
     <template #body>
-      <div class="upload-form">
+      <fieldset class="upload-form" :disabled="busy || submitting">
+        <UAlert
+          v-if="submissionError"
+          color="error"
+          icon="i-lucide-circle-alert"
+          title="Upload failed"
+          :description="submissionError"
+          role="alert"
+          aria-live="assertive"
+        />
         <UFormField v-if="!append" label="Case title"
           ><UInput
             v-model="title"
@@ -154,8 +186,8 @@ defineExpose({ openWithFiles })
           >
         </p>
         <UButton
-          :disabled="!drafts.length"
-          :loading="busy"
+          :disabled="!drafts.length || busy || submitting"
+          :loading="busy || submitting"
           size="lg"
           block
           icon="i-lucide-arrow-right"
@@ -163,7 +195,7 @@ defineExpose({ openWithFiles })
           >{{ append ? 'Add' : 'Create case with' }} {{ drafts.length || 'your' }}
           {{ drafts.length === 1 ? 'file' : 'files' }}</UButton
         >
-      </div>
+      </fieldset>
     </template>
   </UModal>
 </template>

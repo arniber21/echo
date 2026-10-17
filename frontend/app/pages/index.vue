@@ -33,9 +33,15 @@ const canEditDetails = computed(() => canAppend.value && selectedRevision.value 
 function openIntake(files: File[] = []) {
   if (!busy.value) intake.value?.openWithFiles(files)
 }
-function ingestEvidence(files: File[], title: string, metadata: SourceMetadata[]) {
-  if (canAppend.value) void appendEvidence(files, metadata)
-  else void upload(files, title, metadata)
+async function ingestEvidence(files: File[], title: string, metadata: SourceMetadata[]) {
+  const success = canAppend.value
+    ? await appendEvidence(files, metadata)
+    : await upload(files, title, metadata)
+  return { success, error: error.value }
+}
+async function createCase(files: File[], title: string, metadata: SourceMetadata[]) {
+  const success = await upload(files, title, metadata)
+  return { success, error: error.value }
 }
 function editSource(file: MediaFile) {
   if (canEditDetails.value && !busy.value) detailsEditor.value?.edit(file)
@@ -128,8 +134,8 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
           :append="canAppend"
           prominent
           label="Add footage & files"
-          @upload="ingestEvidence"
-        /><UploadCase :busy="busy" label="New case" @upload="upload" />
+          :submit-evidence="ingestEvidence"
+        /><UploadCase :busy="busy" label="New case" :submit-evidence="createCase" />
       </div>
     </header>
     <EvidenceMetadata ref="detailsEditor" :busy="busy" @save="saveSourceMetadata" />

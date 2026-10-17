@@ -14,3 +14,8 @@ export function sourceDetailsChanged(
     newSourceCount === 0,
   )
 }
+
+export interface EvidenceUploadResult {
+  success: boolean
+  error?: string
+}

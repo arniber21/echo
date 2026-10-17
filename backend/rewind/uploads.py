@@ -132,6 +132,14 @@ async def ingest(
     path = directory / source_id
     digest = hashlib.sha256()
     size = 0
+    # Only a bounded display basename may appear in validation messages.
+    basename = (file.filename or "evidence").replace("\\", "/").split("/")[-1]
+    filename = (
+        "".join(character for character in basename if character.isprintable())[
+            :180
+        ].strip()
+        or "evidence"
+    )
     try:
         with path.open("xb") as output:
             while chunk := await file.read(1024 * 1024):
@@ -143,8 +151,6 @@ async def ingest(
         if size == 0:
             raise HTTPException(415, "Empty files cannot be analyzed.")
         kind, mime, duration = await inspect_media(path)
-        # Display name only. Disk paths never contain client-supplied text.
-        filename = (file.filename or "evidence").replace("\\", "/").split("/")[-1][:180]
         return MediaFile(
             source_id=source_id,
             filename=filename,
@@ -156,6 +162,9 @@ async def ingest(
             duration_seconds=duration,
             captured_at=captured_at(path) if kind == SourceType.PHOTO else None,
         ), path
+    except HTTPException as error:
+        path.unlink(missing_ok=True)
+        raise HTTPException(error.status_code, f"{filename}: {error.detail}") from error
     except BaseException:
         path.unlink(missing_ok=True)
         raise

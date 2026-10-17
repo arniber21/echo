@@ -24,7 +24,7 @@ export function useCaseWorkspace() {
     return 'The request could not be completed.'
   }
 
-  async function run(operation: (signal: AbortSignal) => Promise<void>) {
+  async function run(operation: (signal: AbortSignal) => Promise<void>): Promise<boolean> {
     controller?.abort()
     controller = new AbortController()
     const signal = controller.signal
@@ -32,8 +32,10 @@ export function useCaseWorkspace() {
     error.value = ''
     try {
       await operation(signal)
+      return !signal.aborted
     } catch (cause) {
       if (!signal.aborted) error.value = message(cause)
+      return false
     } finally {
       if (!signal.aborted) busy.value = false
     }
@@ -49,7 +51,7 @@ export function useCaseWorkspace() {
   }
 
   async function upload(files: File[], title: string, metadata: SourceMetadata[] = []) {
-    await run(async (signal) => {
+    return run(async (signal) => {
       const body = new FormData()
       files.forEach((file) => body.append('files', file))
       body.append('title', title.trim() || 'Untitled incident')
@@ -60,10 +62,10 @@ export function useCaseWorkspace() {
   }
 
   async function appendEvidence(files: File[], metadata: SourceMetadata[] = []) {
-    if (!currentCase.value || !files.length) return
+    if (!currentCase.value || !files.length) return false
     const caseId = currentCase.value.case_id
     job.value = null
-    await run(async (signal) => {
+    return run(async (signal) => {
       const body = new FormData()
       files.forEach((file) => body.append('files', file))
       if (metadata.length) body.append('metadata', JSON.stringify(metadata))
