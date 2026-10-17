@@ -152,6 +152,7 @@ async def analyze(
                     "captured_at": source.captured_at.isoformat()
                     if source.captured_at
                     else None,
+                    "source_metadata": source.metadata.model_dump(mode="json"),
                     "events": events,
                     "limitations": extractions[source.source_id].limitations,
                 }
