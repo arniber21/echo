@@ -7,6 +7,7 @@ export function useCaseWorkspace() {
   // Server-rendered actions stay disabled until hydration and the initial load finish.
   const busy = ref(true)
   const error = ref('')
+  const loadStatus = ref<'loading' | 'ready' | 'not-found' | 'failed'>('loading')
   let controller: AbortController | null = null
 
   function message(cause: unknown): string {
@@ -42,12 +43,25 @@ export function useCaseWorkspace() {
   }
 
   async function load(caseId?: string) {
-    await run(async (signal) => {
-      currentCase.value = caseId
-        ? await $fetch<Case>(`/api/cases/${encodeURIComponent(caseId)}`, { signal })
-        : await $fetch<Case | null>('/api/workspace', { signal })
-      job.value = null
+    loadStatus.value = 'loading'
+    currentCase.value = null
+    const success = await run(async (signal) => {
+      try {
+        currentCase.value = caseId
+          ? await $fetch<Case>(`/api/cases/${encodeURIComponent(caseId)}`, { signal })
+          : await $fetch<Case | null>('/api/workspace', { signal })
+        job.value = null
+      } catch (cause) {
+        if (!signal.aborted) {
+          loadStatus.value =
+            cause instanceof Error && 'statusCode' in cause && cause.statusCode === 404
+              ? 'not-found'
+              : 'failed'
+        }
+        throw cause
+      }
     })
+    if (success) loadStatus.value = 'ready'
   }
 
   async function upload(files: File[], title: string, metadata: SourceMetadata[] = []) {
@@ -162,6 +176,7 @@ export function useCaseWorkspace() {
     job,
     busy,
     error,
+    loadStatus,
     load,
     upload,
     appendEvidence,

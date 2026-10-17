@@ -20,3 +20,29 @@ for (const width of [1440, 390]) {
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(position)
   })
 }
+
+test('a missing case URL recovers to an existing workspace without claiming there are no cases', async ({ page }) => {
+  const { fileURLToPath } = await import('node:url')
+  await page.goto('/?case=demo')
+  await expect(page.getByRole('button', { name: 'New case', exact: true })).toBeEnabled()
+  await page.getByRole('button', { name: 'New case', exact: true }).click()
+  await page.getByLabel('Choose evidence files').setInputFiles(fileURLToPath(new URL('../../demo/media/demo-video.mp4', import.meta.url)))
+  await page.getByRole('dialog').getByLabel('Case title', { exact: true }).fill('Existing case for recovery')
+  await page.getByRole('button', { name: 'Create case with 1 file', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Existing case for recovery')
+  await page.goto('/?case=does-not-exist')
+  await expect(page.getByRole('heading', { name: 'Case not found', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'No cases yet', exact: true })).toHaveCount(0)
+  await page.locator('.load-failure').getByRole('button', { name: 'Open workspace', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Existing case for recovery')
+  await expect(page).not.toHaveURL(/does-not-exist/)
+  await page.reload()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Existing case for recovery')
+})
+
+test('a workspace load failure is distinct from an empty workspace', async ({ page }) => {
+  await page.route('**/api/workspace', route => route.fulfill({ status: 503, json: { detail: 'Storage is unavailable.' } }))
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Unable to load workspace', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'No cases yet', exact: true })).toHaveCount(0)
+})

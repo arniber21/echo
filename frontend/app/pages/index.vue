@@ -9,6 +9,7 @@ const {
   job,
   busy,
   error,
+  loadStatus,
   load,
   upload,
   appendEvidence,
@@ -90,6 +91,10 @@ watch(selectedRevision, () => {
   selectedEvent.value = null
   reference.value = null
 })
+async function openWorkspace() {
+  if (route.query.case !== undefined) await router.replace({ query: {} })
+  else await load()
+}
 function updateReconstruction() {
   selectedRevision.value = null
   void analyze(mode.value)
@@ -189,8 +194,8 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
         :description="error"
         class="mb-5"
         ><template #actions
-          ><UButton size="xs" color="error" variant="outline" @click="load()"
-            >Open default case</UButton
+          ><UButton size="xs" color="error" variant="outline" @click="openWorkspace"
+            >Open workspace</UButton
           ></template
         ></UAlert
       >
@@ -321,6 +326,12 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
             @select="selectReference"
           />
         </div>
+      </div>
+      <div v-else-if="!busy && loadStatus !== 'ready'" class="empty-analysis load-failure">
+        <UIcon name="i-lucide-folder-search" />
+        <h2>{{ loadStatus === 'not-found' ? 'Case not found' : 'Unable to load workspace' }}</h2>
+        <p>Open the workspace or choose a saved case above.</p>
+        <UButton icon="i-lucide-folder-open" @click="openWorkspace">Open workspace</UButton>
       </div>
       <div v-else-if="!busy" class="empty-analysis">
         <UIcon name="i-lucide-folder-plus" />
