@@ -43,12 +43,12 @@ async def check(root: Path, fresh: bool) -> None:
         from tempfile import TemporaryDirectory
         with TemporaryDirectory(prefix="rewind-live-") as directory:
             result = await analyze(case, paths, progress, settings=AnalysisSettings(
-                api_key=key, model=os.environ.get("GEMINI_MODEL") or environment.get("GEMINI_MODEL") or "gemini-2.5-flash",
+                api_key=key, model=os.environ.get("GEMINI_MODEL") or environment.get("GEMINI_MODEL") or "gemini-3.8-flash",
                 mode="live", cache_dir=Path(directory),
             ))
     else:
         result = await analyze(case, paths, progress, settings=AnalysisSettings(
-            api_key=key, model=os.environ.get("GEMINI_MODEL") or environment.get("GEMINI_MODEL") or "gemini-2.5-flash",
+            api_key=key, model=os.environ.get("GEMINI_MODEL") or environment.get("GEMINI_MODEL") or "gemini-3.8-flash",
             mode="live", cache_dir=cache_dir,
         ))
     print(f"Analysis mode: {result.mode}; {len(result.events)} events; {len(result.contradictions)} contradictions")

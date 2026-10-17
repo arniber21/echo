@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 @dataclass(frozen=True)
 class AnalysisSettings:
     api_key: str | None = None
-    model: str = "gemini-2.5-flash"
+    model: str = "gemini-3.8-flash"
     mode: Literal["auto", "mock", "live"] = "auto"
     cache_dir: Path = Path("data/cache")
     upload_timeout_seconds: float = 180
