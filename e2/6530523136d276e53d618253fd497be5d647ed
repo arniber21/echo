@@ -1,0 +1,60 @@
+frontend/app/utils/location.ts
+  s_4d6956e576b617::t_92b6ec95725e27 1-26
+  s_4d6956e576b617::t_69bd019ebe4248 27-31
+frontend/app/components/LocationPicker.vue
+  s_4d6956e576b617::t_e13501bea5ec04 1-11,13,17-32,37-56,77,81,87,98-99,103,110,125-126,135-136
+  s_4d6956e576b617::t_77b8db87760723 12,14-16,33-36,57-76,78-80,82-86,88-97,100-102,104-109,111-124,127-134
+  s_4d6956e576b617::t_a4b69369bd966e 137
+e2e/tests/real-clips.spec.ts
+  s_4d6956e576b617::t_fa65d8f3fac0fb 73
+frontend/app/components/SourceDetails.vue
+  s_4d6956e576b617::t_b91e78c50e55a2 3,9-13,41
+backend/tests/test_locations.py
+  s_4d6956e576b617::t_b91e78c50e55a2 1-77
+  s_4d6956e576b617::t_2fa6936e2c1c32 78-112
+frontend/app/components/RecordingTimeInputs.vue
+  s_4d6956e576b617::t_7385478faea105 7,10,36
+  s_4d6956e576b617::t_e13501bea5ec04 1-6,8-9,13-15,25-28,45-46,64-65,69
+  s_4d6956e576b617::t_f32b0994f9ffe1 11-12,16-24,29-35,37-44,48-63,66-68,70-74
+  s_4d6956e576b617::t_fa65d8f3fac0fb 47
+e2e/tests/workspace.spec.ts
+  s_4d6956e576b617::t_fa65d8f3fac0fb 187
+frontend/app/components/SourceMetadataFields.vue
+  s_4d6956e576b617::t_e13501bea5ec04 25
+  s_4d6956e576b617::t_0a7eee2737a99a 28
+frontend/app/utils/recordingTime.ts
+  s_4d6956e576b617::t_92b6ec95725e27 1-24
+backend/rewind/config.py
+  s_4d6956e576b617::t_92b6ec95725e27 18
+backend/rewind/main.py
+  s_4d6956e576b617::t_92b6ec95725e27 128
+  s_4d6956e576b617::t_d4a5f58ef7bbb0 24
+e2e/tests/metadata-pickers.spec.ts
+  s_4d6956e576b617::t_ab92a8fe472c5b 1-70
+  s_4d6956e576b617::t_0c331c4d00681b 71-117
+backend/rewind/locations.py
+  s_4d6956e576b617::t_92b6ec95725e27 1-24,32-42,49-50,60,64-72,74-77,81,88-93,98-101,113-124,126-131
+  s_4d6956e576b617::t_77b8db87760723 25-31,43-48,51-59,61-63,78-80,94-97,102-112,125
+  s_4d6956e576b617::t_b91e78c50e55a2 73,82-87
+frontend/tests/metadata.test.ts
+  s_4d6956e576b617::t_b91e78c50e55a2 1-31
+  s_4d6956e576b617::t_e09a4469a4f27d 32-46
+docs/metadata-pickers.md
+  s_4d6956e576b617::t_abcc594161a991 1-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e26530523136d276e53d618253fd497be5d647ed",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
