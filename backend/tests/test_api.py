@@ -868,3 +868,70 @@ def test_classifier_observations_persist_without_becoming_accepted_claims(
     with TestClient(create_app(settings(tmp_path))) as client:
         saved = client.get(f"/api/cases/{case_id}").json()
         assert saved["intelligence"] is not None
+
+
+def test_preview_is_readable_while_job_runs_without_replacing_accepted_state(
+    tmp_path, monkeypatch
+):
+    from rewind.intelligence.models import (
+        EvidenceIntelligence,
+        FrameAssessment,
+        SourceIntelligence,
+    )
+
+    release = asyncio.Event()
+
+    async def delayed_analysis(case, paths, progress, *, settings, intelligence_sink):
+        await progress("classifying_evidence", 8)
+        await intelligence_sink(
+            EvidenceIntelligence(
+                model="jev-1.14.0",
+                version="test",
+                status="complete",
+                sources=[
+                    SourceIntelligence(
+                        source_id=case.media_files[0].source_id,
+                        frames=[
+                            FrameAssessment(
+                                source_time=3.25, signals={"vehicle_visible": 0.95}
+                            )
+                        ],
+                    )
+                ],
+            )
+        )
+        await progress("synthesizing", 80)
+        await release.wait()
+        return case.analysis
+
+    monkeypatch.setattr("rewind.analysis.analyze", delayed_analysis)
+    app = create_app(settings(tmp_path))
+    with TestClient(app) as client:
+        before = client.get("/api/cases/demo").json()
+        job = client.post("/api/cases/demo/analyze").json()
+
+        async def wait_preview():
+            for _ in range(100):
+                if app.state.store.get_case("demo").preview is not None:
+                    return
+                await asyncio.sleep(0.01)
+            pytest.fail("Preview was not published")
+
+        client.portal.call(wait_preview)
+        during = client.get("/api/cases/demo").json()
+        assert during["preview"]["analysis"]["events"][0]["source_start"] == 3.25
+        assert during["analysis"] == before["analysis"]
+        assert during["memory"] == before["memory"]
+        assert during["analysis_history"] == before["analysis_history"]
+        assert client.get(f"/api/jobs/{job['job_id']}").json()["status"] == "running"
+        client.portal.call(release.set)
+
+        async def wait_complete():
+            for _ in range(100):
+                if app.state.store.get_job(job["job_id"]).status == "completed":
+                    return
+                await asyncio.sleep(0.01)
+            pytest.fail("Analysis did not finish")
+
+        client.portal.call(wait_complete)
+        assert client.get("/api/cases/demo").json()["preview"] is None

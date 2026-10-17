@@ -20,6 +20,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from rewind.analysis.errors import classify_failure
 from rewind.config import ROOT, Settings
 from rewind.intelligence.models import EvidenceIntelligence
+from rewind.intelligence.preview import classification_preview
 from rewind.memory import project_memory
 from rewind.models import (
     Analysis,
@@ -223,6 +224,7 @@ def create_app(
                     preserve_analyzed_media(case)
                     case.media_files.extend(media)
                     case.evidence_revision += 1
+                    case.preview = None
                     store.save_case(case, paths)
                     return case
                 except BaseException:
@@ -269,6 +271,7 @@ def create_app(
             preserve_analyzed_media(case)
             media.metadata = metadata
             case.evidence_revision += 1
+            case.preview = None
             store.save_case(case)
             return case
 
@@ -279,6 +282,13 @@ def create_app(
         async def capture_intelligence(report: EvidenceIntelligence) -> None:
             nonlocal intelligence_result
             intelligence_result = report
+            preview = classification_preview(case, report)
+            if preview is not None:
+                async with case_lock(case.case_id):
+                    current = require_case(case.case_id)
+                    if current.evidence_revision == case.evidence_revision:
+                        current.preview = preview
+                        store.save_case(current)
 
         async def progress(stage: str, percent: int):
             nonlocal current_job
@@ -352,6 +362,7 @@ def create_app(
                             )
                         )
                     current.analysis = analysis
+                    current.preview = None
                     current.intelligence = intelligence_result
                     current.analyzed_revision = current.evidence_revision
                     current.analyzed_at = datetime.now(UTC)
