@@ -66,6 +66,15 @@ class Evaluation(BaseModel):
     usage: Usage
 
 
+class EvaluationEnvelope(BaseModel):
+    """Validate the envelope before independently validating frame answers."""
+
+    model_config = ConfigDict(extra="forbid")
+    model: str
+    answers: dict[str, dict]
+    usage: Usage
+
+
 def _key(value: object) -> str:
     return hashlib.sha256(
         json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
@@ -160,20 +169,21 @@ class JevIntelligence:
         self.cache_dir = cache_dir / "jev"
         self.max_frames = max_frames
         self._limit = asyncio.Semaphore(4)
+        self._prepare_limit = asyncio.Semaphore(4)
         self._client = httpx.AsyncClient(
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "TypeSafe-Danger-Zone-Images": "true",
             },
-            timeout=httpx.Timeout(45, connect=10),
+            timeout=httpx.Timeout(20, connect=5),
         )
 
     async def close(self) -> None:
         await self._client.aclose()
 
-    async def _evaluate(
-        self, role: str, state: dict, questions: dict, image: bytes | None = None
-    ) -> tuple[Evaluation, int]:
+    def _cache_path(
+        self, role: str, state: dict, questions: dict, image: bytes | None
+    ) -> Path:
         identity = {
             "version": VERSION,
             "model": self.model,
@@ -185,33 +195,60 @@ class JevIntelligence:
             identity["question_version"] = CLAIM_QUESTION_VERSION
         if image is not None:
             identity["image"] = hashlib.sha256(image).hexdigest()
-        path = self.cache_dir / f"{_key(identity)}.json"
+        return self.cache_dir / f"{_key(identity)}.json"
+
+    async def _cached(self, path: Path, questions: dict) -> Evaluation | None:
         try:
             result = Evaluation.model_validate_json(
                 await asyncio.to_thread(path.read_text)
             )
-            if set(result.answers) == set(questions):
-                return result, 0
+            if self._valid_answers(result, questions):
+                return result
         except (OSError, ValueError):
             pass
-        payload = {"model": self.model, "state": state, "questions": questions}
-        if image is not None:
-            payload["assets"] = {
-                "rewind-frame-asset": {"type": "image", "part": "frame"}
-            }
-        async with self._limit:
+        return None
+
+    def _valid_answers(self, result: Evaluation, questions: dict) -> bool:
+        return (
+            result.model == self.model
+            and set(result.answers) == set(questions)
+            and all(
+                result.answers[key].type == question["type"]
+                for key, question in questions.items()
+            )
+        )
+
+    async def _save(self, path: Path, result: Evaluation) -> None:
+        # A cache write failure must not discard a valid paid response.
+        try:
+            await asyncio.to_thread(self.cache_dir.mkdir, parents=True, exist_ok=True)
+            temporary = path.with_suffix(f".{id(asyncio.current_task())}.tmp")
+            await asyncio.to_thread(temporary.write_text, result.model_dump_json())
+            await asyncio.to_thread(temporary.replace, path)
+        except OSError:
+            pass
+
+    async def _request(
+        self, payload: dict, images: dict[str, bytes]
+    ) -> EvaluationEnvelope:
+        # Deadline includes both attempts and backoff, once a concurrency slot
+        # is available. A stalled provider cannot occupy that slot for 90 seconds.
+        async with self._limit, asyncio.timeout(20):
             for attempt in range(2):
-                if image is None:
+                if images:
+                    files = {"request": (None, json.dumps(payload), "application/json")}
+                    files.update(
+                        {
+                            name: (f"{name}.jpg", image, "image/jpeg")
+                            for name, image in images.items()
+                        }
+                    )
                     response = await self._client.post(
-                        "https://api.typesafe.ai/v1/systemone", json=payload
+                        "https://api.typesafe.ai/v1/systemone", files=files
                     )
                 else:
                     response = await self._client.post(
-                        "https://api.typesafe.ai/v1/systemone",
-                        files={
-                            "request": (None, json.dumps(payload), "application/json"),
-                            "frame": ("frame.jpg", image, "image/jpeg"),
-                        },
+                        "https://api.typesafe.ai/v1/systemone", json=payload
                     )
                 if (
                     response.status_code == 429 or response.status_code >= 500
@@ -219,23 +256,129 @@ class JevIntelligence:
                     await asyncio.sleep(0.5)
                     continue
                 response.raise_for_status()
-                result = Evaluation.model_validate(response.json())
-                if result.model != self.model or set(result.answers) != set(questions):
-                    raise ValueError("Unexpected classifier response contract")
-                # Cache failures must not discard an otherwise valid paid response.
-                try:
-                    await asyncio.to_thread(
-                        self.cache_dir.mkdir, parents=True, exist_ok=True
-                    )
-                    temporary = path.with_suffix(f".{id(asyncio.current_task())}.tmp")
-                    await asyncio.to_thread(
-                        temporary.write_text, result.model_dump_json()
-                    )
-                    await asyncio.to_thread(temporary.replace, path)
-                except OSError:
-                    pass
-                return result, result.usage.input_tokens
+                result = EvaluationEnvelope.model_validate(response.json())
+                if result.model != self.model:
+                    raise ValueError("Unexpected classifier model")
+                return result
         raise RuntimeError("Unreachable request loop")
+
+    async def _evaluate(
+        self, role: str, state: dict, questions: dict, image: bytes | None = None
+    ) -> tuple[Evaluation, int]:
+        path = self._cache_path(role, state, questions, image)
+        cached = await self._cached(path, questions)
+        if cached is not None:
+            return cached, 0
+        payload = {"model": self.model, "state": state, "questions": questions}
+        if image is not None:
+            payload["assets"] = {
+                "rewind-frame-asset": {"type": "image", "part": "frame"}
+            }
+        envelope = await self._request(
+            payload, {"frame": image} if image is not None else {}
+        )
+        result = Evaluation.model_validate(envelope.model_dump())
+        if not self._valid_answers(result, questions):
+            raise ValueError("Unexpected classifier response contract")
+        await self._save(path, result)
+        return result, result.usage.input_tokens
+
+    async def _visual_batch(
+        self, images: list[bytes], questions: dict
+    ) -> tuple[list[Evaluation | None], int]:
+        """Fill legacy per-frame caches from at most four shared-image questions.
+
+        Frame cache identity stays unchanged. Batch token usage is counted once;
+        each cache record retains the original request usage, never an invented
+        allocation of image tokens. Cache reads always count zero fresh tokens.
+        """
+        if not 1 <= len(images) <= 4:
+            raise ValueError("Visual batches require one to four frames")
+        paths = [
+            self._cache_path(
+                "visual", {"frame": "rewind-frame-asset"}, questions, image
+            )
+            for image in images
+        ]
+        results = await asyncio.gather(
+            *(self._cached(path, questions) for path in paths)
+        )
+        pending = [index for index, result in enumerate(results) if result is None]
+        tokens = 0
+        # An incomplete valid response retries only the frames without a complete
+        # typed answer set. Completed frames are persisted before that retry.
+        for _ in range(2):
+            if not pending:
+                break
+            batch_questions = {}
+            for position, index in enumerate(pending):
+                for name, question in questions.items():
+                    batch_questions[f"f{position}_{name}"] = {
+                        **question,
+                        "instructions": question["instructions"].replace(
+                            "`frame`", f"`frames[{position}].frame`"
+                        )
+                        + f" Evaluate only frames[{position}].frame; ignore the other images.",
+                    }
+            payload = {
+                "model": self.model,
+                "state": {
+                    "frames": [
+                        {"frame": f"rewind-batch-asset-{position}"}
+                        for position in range(len(pending))
+                    ]
+                },
+                "questions": batch_questions,
+                "assets": {
+                    f"rewind-batch-asset-{position}": {
+                        "type": "image",
+                        "part": f"frame-{position}",
+                    }
+                    for position in range(len(pending))
+                },
+            }
+            upload_images = {
+                f"frame-{position}": images[index]
+                for position, index in enumerate(pending)
+            }
+            single = len(pending) == 1
+            if single:
+                payload = {
+                    "model": self.model,
+                    "state": {"frame": "rewind-frame-asset"},
+                    "questions": questions,
+                    "assets": {
+                        "rewind-frame-asset": {"type": "image", "part": "frame"}
+                    },
+                }
+                upload_images = {"frame": images[pending[0]]}
+            try:
+                result = await self._request(payload, upload_images)
+                tokens += result.usage.input_tokens
+            except (TimeoutError, httpx.HTTPError, ValueError, OSError):
+                break
+            incomplete = []
+            for position, index in enumerate(pending):
+                prefix = "" if single else f"f{position}_"
+                answers = {
+                    name: result.answers[f"{prefix}{name}"]
+                    for name in questions
+                    if f"{prefix}{name}" in result.answers
+                }
+                try:
+                    frame_result = Evaluation(
+                        model=result.model, answers=answers, usage=result.usage
+                    )
+                except ValueError:
+                    incomplete.append(index)
+                    continue
+                if self._valid_answers(frame_result, questions):
+                    results[index] = frame_result
+                    await self._save(paths[index], frame_result)
+                else:
+                    incomplete.append(index)
+            pending = incomplete
+        return results, tokens
 
     @staticmethod
     def _probabilities(result: Evaluation, names: dict[str, str]) -> dict[str, float]:
@@ -265,10 +408,10 @@ class JevIntelligence:
                 times = sample_times(source.duration_seconds, self.max_frames)
             else:
                 times = [None]
-            tokens, failed = 0, False
-            for timestamp in times:
+
+            async def prepare(timestamp: float | None) -> tuple[bytes, int, int] | None:
                 try:
-                    async with self._limit:
+                    async with self._prepare_limit:
                         raw = (
                             await video_frame(paths[source.source_id], timestamp)
                             if timestamp is not None
@@ -276,23 +419,46 @@ class JevIntelligence:
                                 paths[source.source_id].read_bytes
                             )
                         )
-                        image, width, height = await asyncio.to_thread(
-                            normalize_image, raw
-                        )
-                    questions = _noul_questions(VISUAL_QUESTIONS)
-                    questions["vehicle_box"] = {
-                        "type": "box",
-                        "instructions": "The visible vehicle nearest the image center in `frame`.",
-                    }
-                    result, usage = await self._evaluate(
-                        "visual", {"frame": "rewind-frame-asset"}, questions, image
-                    )
-                    tokens += usage
+                        return await asyncio.to_thread(normalize_image, raw)
+                except (TimeoutError, httpx.HTTPError, ValueError, OSError):
+                    return None
+
+            prepared = await asyncio.gather(
+                *(prepare(timestamp) for timestamp in times)
+            )
+            successful = [
+                (timestamp, item)
+                for timestamp, item in zip(times, prepared, strict=True)
+                if item is not None
+            ]
+            failed = len(successful) != len(times)
+            questions = _noul_questions(VISUAL_QUESTIONS)
+            questions["vehicle_box"] = {
+                "type": "box",
+                "instructions": "The visible vehicle nearest the image center in `frame`.",
+            }
+            batches = [
+                successful[index : index + 4] for index in range(0, len(successful), 4)
+            ]
+            evaluated = await asyncio.gather(
+                *(
+                    self._visual_batch([item[0] for _, item in batch], questions)
+                    for batch in batches
+                )
+            )
+            tokens = sum(usage for _, usage in evaluated)
+            for batch, (results, _) in zip(batches, evaluated, strict=True):
+                for (timestamp, (image, width, height)), result in zip(
+                    batch, results, strict=True
+                ):
+                    if result is None:
+                        failed = True
+                        continue
                     signals = self._probabilities(result, VISUAL_QUESTIONS)
                     box = result.answers["vehicle_box"]
                     if not isinstance(box, BoxAnswer):
-                        raise ValueError("Expected Box answer")  # noqa: TRY004 - invalid provider contract
-                    # Experimental display gate, not a calibrated detection rule.
+                        failed = True
+                        continue
                     present = signals["vehicle_visible"] >= 0.8
                     entry.frames.append(
                         FrameAssessment(
@@ -305,8 +471,6 @@ class JevIntelligence:
                             prepared_height=height,
                         )
                     )
-                except (TimeoutError, httpx.HTTPError, ValueError, OSError):
-                    failed = True
             return entry, tokens, failed
 
         results = await asyncio.gather(*(scan(source) for source in media))
