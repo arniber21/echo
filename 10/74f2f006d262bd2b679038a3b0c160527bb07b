@@ -1,0 +1,27 @@
+e2e/tests/timeline-unknown.spec.ts
+  s_4d6956e576b617::t_d265d29167113b 1-41
+frontend/app/components/IncidentTimeline.vue
+  s_4d6956e576b617::t_53a62840b74a8d 3-11,22-28,88,102-105,114-137
+frontend/app/components/UnifiedTimeline.vue
+  s_4d6956e576b617::t_5c5ee2aa0f2bcc 3-11,27-28,32-34,60-62,81-86,92-93,97-139,141,143-145,151-153,162,166-229
+frontend/app/utils/timeline.ts
+  s_4d6956e576b617::t_fcffccfa4ad7e1 15-17,34,38-48
+frontend/tests/timeline.test.ts
+  s_4d6956e576b617::t_09d16cf5745626 8-9,54,102-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1074f2f006d262bd2b679038a3b0c160527bb07b",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
