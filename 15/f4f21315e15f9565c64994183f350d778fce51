@@ -1,0 +1,41 @@
+backend/rewind/analysis/validation.py
+  s_4d6956e576b617::t_ff0a76932d4e56 91-101,107,113-118
+  s_4d6956e576b617::t_d41679e84622ad 102-106,108-112
+backend/rewind/main.py
+  s_4d6956e576b617::t_8dc8ff7335ec96 20,275-276,278,288,368,372,377-387,389,393
+backend/tests/test_api.py
+  s_4d6956e576b617::t_e08c99e6e61b5b 160-164,166-190,192-196,206-208
+  s_4d6956e576b617::t_7ae56c7bb58f89 8,11,13,157-159,165,191,197-205,209-216,223-224,241-242,244-254
+backend/rewind/analysis/provider.py
+  s_4d6956e576b617::t_68eaf35009edae 41-43,132-137
+backend/rewind/analysis/pipeline.py
+  s_4d6956e576b617::t_ff0a76932d4e56 21,178
+backend/tests/test_analysis_pipeline.py
+  s_4d6956e576b617::t_d41679e84622ad 483-508,510-522
+  s_4d6956e576b617::t_886b6778094c59 414
+  s_4d6956e576b617::t_35d0305145e6ae 415-417,438,452-456,469-472
+  s_4d6956e576b617::t_5fa363a6a44665 418-437,439-451,457-468,473-482,509,523-536
+backend/rewind/analysis/errors.py
+  s_4d6956e576b617::t_8dc8ff7335ec96 1-61
+backend/rewind/analysis/prompts.py
+  s_4d6956e576b617::t_68ccac0db343e1 4,48-53
+docs/typesafe-images-research.md
+  s_4d6956e576b617::t_d5fcc972ebef0f 1-2,4-77
+  s_4d6956e576b617::t_d41679e84622ad 3,78-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "15f4f21315e15f9565c64994183f350d778fce51",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
