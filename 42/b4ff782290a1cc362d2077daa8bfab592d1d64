@@ -1,0 +1,35 @@
+frontend/app/components/SourceMetadataFields.vue
+  s_4d6956e576b617::t_fc4b94ba38334b 14,22,30,38
+scripts/import_case.py
+  s_4d6956e576b617::t_2a505cabefb767 7-8
+frontend/app/pages/report.vue
+  s_4d6956e576b617::t_c96b2761258069 101-112
+  s_4d6956e576b617::t_a569d61c880581 100
+README.md
+  s_4d6956e576b617::t_61c9c67bc52077 40
+  s_4d6956e576b617::t_54761672af7982 31-39,41-50,58-70
+  s_4d6956e576b617::t_a569d61c880581 51-57,71-76
+IMPLEMENTATION.md
+  s_4d6956e576b617::t_a569d61c880581 17,70-75
+  s_4d6956e576b617::t_54761672af7982 14,16,53-69
+e2e/tests/workspace.spec.ts
+  s_4d6956e576b617::t_80dfd80389fd6a 11,118
+  s_4d6956e576b617::t_61c9c67bc52077 17
+  s_4d6956e576b617::t_61c88868a366ba 155-191
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "42b4ff782290a1cc362d2077daa8bfab592d1d64",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
