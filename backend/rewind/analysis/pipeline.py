@@ -61,7 +61,7 @@ async def analyze(
     settings = settings or AnalysisSettings()
     if settings.mode == "mock" or (settings.mode == "auto" and not settings.api_key):
         await progress("synthesizing", 90)
-        return validate_analysis(mock_analysis(case), case.media_files)
+        return validate_analysis(mock_analysis(case), case.media_files, case.answers)
     if not settings.api_key:
         raise ValueError("Live analysis requires GEMINI_API_KEY")
     if not case.media_files:
@@ -203,6 +203,10 @@ async def analyze(
                     "limitations": extractions[source.source_id].limitations,
                 }
             )
+        # Answers influence synthesis only; media extraction remains immutable/cacheable.
+        records[0]["case_answers"] = [
+            answer.model_dump(mode="json") for answer in case.answers
+        ]
         key = cache_key(
             {
                 "version": SYNTHESIS_PROMPT_VERSION,
@@ -214,7 +218,7 @@ async def analyze(
         result = await asyncio.to_thread(cache.read, key, Analysis)
         if result is not None:
             try:
-                validate_synthesis(result, canonical, extractions)
+                validate_synthesis(result, canonical, extractions, case.answers)
             except ValueError:
                 result = None
         if result is None:
@@ -222,7 +226,7 @@ async def analyze(
                 SYNTHESIS_PROMPT + json.dumps(records),
                 Analysis,
                 validate=lambda output: finalize_synthesis(
-                    output, canonical, extractions
+                    output, canonical, extractions, case.answers
                 ),
             )
             result = result.model_copy(
@@ -259,7 +263,9 @@ async def analyze(
                     }
                 )
             await publish_intelligence(intelligence_report)
-        return validate_analysis(_remap(result, real_ids), case.media_files)
+        return validate_analysis(
+            _remap(result, real_ids), case.media_files, case.answers
+        )
     finally:
         if provider is not None:
             await provider.close()

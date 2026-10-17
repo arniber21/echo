@@ -269,7 +269,11 @@ def validate_analysis(
     answer_ids = {answer.answer_id for answer in answers or []}
     if len(answer_ids) != len(answers or []):
         raise ValueError("Case answer IDs must be unique")
-    for item in [*analysis.summary, *analysis.missing_evidence, *analysis.contradictions]:
+    for item in [
+        *analysis.summary,
+        *analysis.missing_evidence,
+        *analysis.contradictions,
+    ]:
         if not set(item.answer_refs) <= answer_ids:
             raise ValueError("Unknown case-answer reference")
     refs = [*analysis.events]
@@ -313,7 +317,11 @@ def validate_analysis(
         if not set(event.supports) <= event_ids:
             raise ValueError("Unknown supported event reference")
     for contradiction in analysis.contradictions:
-        if len({ref.source_id for ref in contradiction.source_refs}) + len(set(contradiction.answer_refs)) < 2:
+        if (
+            len({ref.source_id for ref in contradiction.source_refs})
+            + len(set(contradiction.answer_refs))
+            < 2
+        ):
             raise ValueError("Contradictions must reference both conflicting sources")
     return analysis
 

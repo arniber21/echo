@@ -31,7 +31,12 @@ def project_memory(
         else {}
     )
 
-    def remember(kind: str, text: str, refs: list[SourceRef]) -> str:
+    def remember(
+        kind: str,
+        text: str,
+        refs: list[SourceRef],
+        answer_refs: list[str] | None = None,
+    ) -> str:
         normalized_text = " ".join(text.split())
         # Ordering of references is not a change to the claim's identity.
         normalized_refs = sorted(
@@ -40,8 +45,15 @@ def project_memory(
             }.values(),
             key=lambda ref: json.dumps(ref, sort_keys=True),
         )
+        identity_data = {
+            "kind": kind,
+            "text": normalized_text,
+            "source_refs": normalized_refs,
+        }
+        if answer_refs:
+            identity_data["answer_refs"] = sorted(set(answer_refs))
         identity = json.dumps(
-            {"kind": kind, "text": normalized_text, "source_refs": normalized_refs},
+            identity_data,
             sort_keys=True,
             separators=(",", ":"),
             ensure_ascii=False,
@@ -54,6 +66,7 @@ def project_memory(
                 "kind": kind,
                 "text": normalized_text,
                 "source_refs": normalized_refs,
+                "answer_refs": sorted(set(answer_refs or [])),
                 "first_revision": old.first_revision if old else revision,
                 "last_revision": revision,
                 "status": "active",
@@ -63,7 +76,7 @@ def project_memory(
 
     summary_ids = list(
         dict.fromkeys(
-            remember("summary", claim.text, claim.source_refs)
+            remember("summary", claim.text, claim.source_refs, claim.answer_refs)
             for claim in analysis.summary
         )
     )
@@ -85,7 +98,10 @@ def project_memory(
     ):
         for finding in findings:
             remember(
-                kind, f"{finding.title}: {finding.description}", finding.source_refs
+                kind,
+                f"{finding.title}: {finding.description}",
+                finding.source_refs,
+                finding.answer_refs,
             )
     return CaseMemory(
         revision=revision,

@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 
-from rewind.models import Analysis, MediaFile, SourceType, validate_analysis
+from rewind.models import Analysis, CaseAnswer, MediaFile, SourceType, validate_analysis
 
 from .types import Extraction
 
@@ -23,9 +23,12 @@ def validate_extraction(result: Extraction, media: MediaFile) -> None:
 
 
 def validate_synthesis(
-    result: Analysis, media: list[MediaFile], extractions: Mapping[str, Extraction]
+    result: Analysis,
+    media: list[MediaFile],
+    extractions: Mapping[str, Extraction],
+    answers: list[CaseAnswer] | None = None,
 ) -> None:
-    validate_analysis(result, media)
+    validate_analysis(result, media, answers)
     expected = {
         f"event-{source_id}-{index}": (source_id, event)
         for source_id, extraction in extractions.items()
@@ -91,7 +94,10 @@ def validate_synthesis(
 
 
 def finalize_synthesis(
-    result: Analysis, media: list[MediaFile], extractions: Mapping[str, Extraction]
+    result: Analysis,
+    media: list[MediaFile],
+    extractions: Mapping[str, Extraction],
+    answers: list[CaseAnswer] | None = None,
 ) -> None:
     """Set the known primary clock in-place, then validate all evidence and inferred alignment.
 
@@ -115,4 +121,4 @@ def finalize_synthesis(
             event.case_max = event.source_start + 0.5
             event.alignment_basis = "Primary video source clock"
             event.alignment_confidence = 1
-    validate_synthesis(result, media, extractions)
+    validate_synthesis(result, media, extractions, answers)

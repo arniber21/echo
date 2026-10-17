@@ -27,6 +27,15 @@ def mock_analysis(case: Case) -> Analysis:
                 evidence_type="inference",
             )
         )
+    reported = [
+        Claim(
+            text=f"User-reported response ({answer.respondent or 'unnamed user'}): {answer.text}"[
+                :8000
+            ],
+            answer_refs=[answer.answer_id],
+        )
+        for answer in case.answers
+    ]
     refs = [SourceRef(source_id=media.source_id) for media in case.media_files]
     return Analysis(
         events=events,
@@ -36,8 +45,9 @@ def mock_analysis(case: Case) -> Analysis:
                 source_refs=refs,
             )
         ]
+        + reported
         if refs
-        else [],
+        else reported,
         missing_evidence=[
             Finding(
                 id="mock-analysis-required",

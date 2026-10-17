@@ -26,7 +26,10 @@ from rewind.models import (
     Analysis,
     AnalysisRevision,
     AnalyzeRequest,
+    AnswerCreate,
+    AnswerUpdate,
     Case,
+    CaseAnswer,
     Job,
     SourceMetadata,
     validate_analysis,
@@ -275,6 +278,118 @@ def create_app(
             store.save_case(case)
             return case
 
+    def require_answer_write(case: Case, expected_revision: int) -> None:
+        if case.case_id == "demo":
+            raise HTTPException(409, "Start a new case to answer questions.")
+        if store.active_job(case.case_id):
+            raise HTTPException(
+                409, "Analysis is running. Wait before editing answers."
+            )
+        if case.evidence_revision != expected_revision:
+            raise HTTPException(
+                409, "The case changed. Reload before saving your answer."
+            )
+
+    def clean_answer(text: str, respondent: str) -> tuple[str, str]:
+        text, respondent = text.strip(), respondent.strip()
+        if not text:
+            raise HTTPException(422, "Enter an answer before saving.")
+        return text, respondent
+
+    @app.post("/api/cases/{case_id}/answers", response_model=Case)
+    async def create_answer(case_id: str, request: AnswerCreate):
+        async with case_lock(case_id):
+            case = require_case(case_id)
+            text, respondent = clean_answer(request.text, request.respondent)
+            # The accepted analysis, not an in-progress preview, defines the question.
+            if (
+                case.analysis is None
+                or case.analyzed_revision != request.question_revision
+            ):
+                raise HTTPException(
+                    409, "This question belongs to an older analysis. Reload the case."
+                )
+            question = next(
+                (
+                    item
+                    for item in case.analysis.missing_evidence
+                    if item.id == request.question_id
+                ),
+                None,
+            )
+            if question is None:
+                raise HTTPException(
+                    409, "This question is no longer available. Reload the case."
+                )
+            existing = next(
+                (
+                    item
+                    for item in case.answers
+                    if item.question_id == request.question_id
+                    and item.question_revision == request.question_revision
+                ),
+                None,
+            )
+            # A repeated successful request is safe even with its original revision.
+            if (
+                existing is not None
+                and existing.text == text
+                and existing.respondent == respondent
+            ):
+                if store.active_job(case_id):
+                    raise HTTPException(
+                        409, "Analysis is running. Wait before editing answers."
+                    )
+                return case
+            require_answer_write(case, request.expected_evidence_revision)
+            if existing is not None:
+                raise HTTPException(
+                    409,
+                    "This question already has an answer. Edit the saved answer instead.",
+                )
+            now = datetime.now(UTC)
+            case.answers.append(
+                CaseAnswer(
+                    answer_id=uuid4().hex,
+                    question_id=question.id,
+                    question_title=question.title,
+                    question_text=question.description,
+                    question_revision=request.question_revision,
+                    text=text,
+                    respondent=respondent,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            case.evidence_revision += 1
+            case.preview = None
+            store.save_case(case)
+            return case
+
+    @app.patch("/api/cases/{case_id}/answers/{answer_id}", response_model=Case)
+    async def update_answer(case_id: str, answer_id: str, request: AnswerUpdate):
+        async with case_lock(case_id):
+            case = require_case(case_id)
+            answer = next(
+                (item for item in case.answers if item.answer_id == answer_id), None
+            )
+            if answer is None:
+                raise HTTPException(404, "Case answer not found.")
+            text, respondent = clean_answer(request.text, request.respondent)
+            if store.active_job(case_id):
+                raise HTTPException(
+                    409, "Analysis is running. Wait before editing answers."
+                )
+            if answer.text == text and answer.respondent == respondent:
+                return case
+            require_answer_write(case, request.expected_evidence_revision)
+            answer.text, answer.respondent = text, respondent
+            answer.updated_at = datetime.now(UTC)
+            case.evidence_revision += 1
+            case.preview = None
+            store.save_case(case)
+            return case
+
     async def run_analysis(job: Job, case: Case, mode: str):
         current_job = job
         intelligence_result: EvidenceIntelligence | None = None
@@ -330,7 +445,7 @@ def create_app(
                         ),
                         intelligence_sink=capture_intelligence,
                     )
-                validate_analysis(analysis, case.media_files)
+                validate_analysis(analysis, case.media_files, case.answers)
                 async with case_lock(case.case_id):
                     current = require_case(case.case_id)
                     if current.evidence_revision != case.evidence_revision:
@@ -357,10 +472,17 @@ def create_app(
                                     item.model_copy(deep=True)
                                     for item in current.analyzed_media_files
                                 ],
+                                answers=[
+                                    item.model_copy(deep=True)
+                                    for item in current.analyzed_answers
+                                ],
                                 analysis=current.analysis,
                                 intelligence=current.intelligence,
                             )
                         )
+                    current.analyzed_answers = [
+                        item.model_copy(deep=True) for item in current.answers
+                    ]
                     current.analysis = analysis
                     current.preview = None
                     current.intelligence = intelligence_result
