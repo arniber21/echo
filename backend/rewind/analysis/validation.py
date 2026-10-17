@@ -88,3 +88,31 @@ def validate_synthesis(
                 ref.source_start is not None or ref.source_end is not None
             ):
                 raise ValueError("Photo references cannot contain seek times")
+
+
+def finalize_synthesis(
+    result: Analysis, media: list[MediaFile], extractions: Mapping[str, Extraction]
+) -> None:
+    """Set the known primary clock in-place, then validate all evidence and inferred alignment.
+
+    The model does not decide the case-clock origin. These placements are defined
+    by source timestamps, unlike semantic alignment of other sources.
+    """
+    videos = [source for source in media if source.source_type == SourceType.VIDEO]
+    anchor = (
+        min(videos, key=lambda source: (source.sha256, source.source_id))
+        if videos
+        else None
+    )
+    for event in result.events:
+        if (
+            anchor
+            and event.source_id == anchor.source_id
+            and event.source_start is not None
+        ):
+            event.case_best = event.source_start
+            event.case_min = max(0, event.source_start - 0.5)
+            event.case_max = event.source_start + 0.5
+            event.alignment_basis = "Primary video source clock"
+            event.alignment_confidence = 1
+    validate_synthesis(result, media, extractions)

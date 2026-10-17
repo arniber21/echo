@@ -411,3 +411,126 @@ def test_live_cli_errors_are_concise_and_redact_provider_details(monkeypatch, ca
     assert "RuntimeError" in output.err
     assert "secret-provider-value" not in output.err
     assert "Traceback" not in output.err
+
+
+def test_secondary_video_negative_window_retries_with_the_exact_safe_rule(case):
+    primary = case.media_files[0]
+    secondary = primary.model_copy(
+        update={"source_id": "secondary", "sha256": "z" * 64}
+    )
+    original = next(
+        event for event in case.analysis.events if event.source_id == primary.source_id
+    )
+    primary_event = original.model_copy(
+        update={"event_id": f"event-{primary.source_id}-0", "supports": []}
+    )
+    secondary_event = original.model_copy(
+        update={
+            "event_id": "event-secondary-0",
+            "source_id": secondary.source_id,
+            "case_min": -0.5,
+            "case_best": 0,
+            "case_max": None,
+            "alignment_confidence": 0.1,
+            "supports": [],
+        }
+    )
+    extractions = {
+        source.source_id: Extraction(
+            events=[
+                ExtractedEvent(
+                    title=event.title,
+                    description=event.description,
+                    source_start=event.source_start,
+                    source_end=event.source_end,
+                    evidence_type=event.evidence_type,
+                    confidence=event.confidence,
+                )
+            ],
+            limitations=[],
+        )
+        for source, event in [(primary, primary_event), (secondary, secondary_event)]
+    }
+    invalid = Analysis(events=[primary_event, secondary_event], summary=[])
+    corrected = invalid.model_copy(deep=True)
+    corrected.events[1].case_min = 0
+    provider = provider_with_responses(
+        [invalid.model_dump_json(), corrected.model_dump_json()]
+    )
+    result = asyncio.run(
+        provider.generate(
+            "Combine these two video extractions",
+            Analysis,
+            validate=lambda output: validate_synthesis(
+                output, [primary, secondary], extractions
+            ),
+        )
+    )
+    assert result.events[1].case_min == 0
+    assert result.events[1].case_max is None
+    assert provider.client.aio.models.generate_content.await_count == 2
+    retry = provider.client.aio.models.generate_content.call_args_list[1]
+    assert (
+        "Secondary video placement ranges must be nonnegative"
+        in retry.kwargs["contents"][-1].text
+    )
+
+
+def test_primary_clock_is_derived_without_changing_secondary_alignment(case):
+    from rewind.analysis.validation import finalize_synthesis
+
+    primary = case.media_files[0]
+    secondary = primary.model_copy(
+        update={"source_id": "secondary", "sha256": "z" * 64}
+    )
+    original = next(
+        event for event in case.analysis.events if event.source_id == primary.source_id
+    )
+    anchored = original.model_copy(
+        update={
+            "event_id": f"event-{primary.source_id}-0",
+            "case_min": 0,
+            "case_best": 10,
+            "case_max": 100,
+            "supports": [],
+        }
+    )
+    inferred = original.model_copy(
+        update={
+            "event_id": "event-secondary-0",
+            "source_id": "secondary",
+            "case_min": 0,
+            "case_best": 10,
+            "case_max": None,
+            "alignment_confidence": 0.1,
+            "supports": [],
+        }
+    )
+    extractions = {
+        event.source_id: Extraction(
+            events=[
+                ExtractedEvent(
+                    title=event.title,
+                    description=event.description,
+                    source_start=event.source_start,
+                    source_end=event.source_end,
+                    evidence_type=event.evidence_type,
+                    confidence=event.confidence,
+                )
+            ],
+            limitations=[],
+        )
+        for event in [anchored, inferred]
+    }
+    result = Analysis(events=[anchored, inferred], summary=[])
+    finalize_synthesis(result, [primary, secondary], extractions)
+    assert anchored.case_best == anchored.source_start
+    assert anchored.case_min == max(0, anchored.source_start - 0.5)
+    assert anchored.case_max == anchored.source_start + 0.5
+    assert anchored.alignment_confidence == 1
+    assert inferred.case_best == 10
+    assert inferred.case_max is None
+    # Deterministic placement must not hide a model's changed source timestamp.
+    anchored.source_start += 1
+    with pytest.raises(ValueError, match="changed source"):
+        finalize_synthesis(result, [primary, secondary], extractions)

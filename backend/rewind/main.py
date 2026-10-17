@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from rewind.analysis.errors import classify_failure
 from rewind.config import ROOT, Settings
 from rewind.memory import project_memory
 from rewind.models import (
@@ -271,7 +272,10 @@ def create_app(
             return case
 
     async def run_analysis(job: Job, case: Case, mode: str):
+        current_job = job
+
         async def progress(stage: str, percent: int):
+            nonlocal current_job
             # Validate service progress before writing it to persistent state.
             updated = Job(
                 job_id=job.job_id,
@@ -281,6 +285,7 @@ def create_app(
                 progress=percent,
             )
             store.save_job(updated)
+            current_job = updated
 
         try:
             async with analysis_lock:
@@ -360,24 +365,32 @@ def create_app(
                     )
         except asyncio.CancelledError:
             store.save_job(
-                job.model_copy(
+                current_job.model_copy(
                     update={
                         "status": "failed",
                         "stage": "failed",
-                        "error": "Analysis interrupted. Retry analysis.",
+                        "error": f"Analysis interrupted during {current_job.stage}. Retry analysis. Reference: {job.job_id}.",
                     }
                 )
             )
             raise
-        except Exception:  # noqa: BLE001 - job boundary isolates provider failures
-            # Provider exceptions can contain request headers or source paths. Keep them out of API responses.
-            logger.error("Analysis failed for job %s", job.job_id)
+        except Exception as error:  # noqa: BLE001 - job boundary isolates provider failures
+            failure = classify_failure(error)
+            # Deliberately omit exception text, traceback, headers and model output.
+            logger.error(
+                "Analysis failed job=%s stage=%s progress=%s code=%s validation=%s",
+                job.job_id,
+                current_job.stage,
+                current_job.progress,
+                failure.code,
+                failure.validation or "none",
+            )
             store.save_job(
-                job.model_copy(
+                current_job.model_copy(
                     update={
                         "status": "failed",
                         "stage": "failed",
-                        "error": "Analysis could not be completed. Check provider configuration and retry, or open the synthetic demo.",
+                        "error": f"{failure.message} Stage: {current_job.stage}. Reference: {job.job_id}.",
                     }
                 )
             )

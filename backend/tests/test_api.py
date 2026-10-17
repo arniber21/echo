@@ -5,9 +5,12 @@ import os
 import subprocess
 import sys
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
+from google.genai.errors import APIError
 from PIL import Image
+from rewind.analysis.provider import InvalidModelOutput
 from rewind.config import ROOT, Settings
 from rewind.main import create_app
 from rewind.models import Analysis, Case, Event, validate_analysis
@@ -151,14 +154,74 @@ def test_job_completes_and_persists_analysis(tmp_path):
         )
 
 
-def test_failed_job_can_retry_without_leaking_exception(tmp_path):
+@pytest.mark.parametrize(
+    ("failure", "expected_code", "expected_message"),
+    [
+        (
+            RuntimeError("secret-provider-token"),
+            "analysis_failed",
+            "could not be completed",
+        ),
+        (TimeoutError("secret-provider-token"), "timeout", "timed out"),
+        (
+            InvalidModelOutput("secret-provider-token"),
+            "invalid_model_output",
+            "failed validation",
+        ),
+        (
+            APIError(401, {"message": "secret-provider-token"}),
+            "provider_authentication",
+            "rejected access",
+        ),
+        (
+            APIError(403, {"message": "secret-provider-token"}),
+            "provider_authentication",
+            "rejected access",
+        ),
+        (
+            APIError(404, {"message": "secret-provider-token"}),
+            "provider_model_unavailable",
+            "model is unavailable",
+        ),
+        (
+            APIError(429, {"message": "secret-provider-token"}),
+            "provider_rate_limit",
+            "rate or quota limit",
+        ),
+        (
+            APIError(503, {"message": "secret-provider-token"}),
+            "provider_unavailable",
+            "temporarily unavailable",
+        ),
+        (
+            httpx.HTTPStatusError(
+                "secret-provider-token",
+                request=httpx.Request("POST", "https://secret-provider-token.test"),
+                response=httpx.Response(429),
+            ),
+            "provider_rate_limit",
+            "rate or quota limit",
+        ),
+        (
+            InvalidModelOutput(
+                "Gemini returned invalid evidence data after one retry: Extraction exceeds source duration"
+            ),
+            "invalid_model_output",
+            "failed validation",
+        ),
+    ],
+)
+def test_failed_job_can_retry_without_leaking_exception(
+    tmp_path, caplog, failure, expected_code, expected_message
+):
     calls = 0
 
     async def analyze(case, paths, progress):
         nonlocal calls
         calls += 1
         if calls == 1:
-            raise RuntimeError("secret-provider-token")
+            await progress("synthesizing", 80)
+            raise failure
         return Analysis(events=[], summary=[], mode="mock")
 
     app = create_app(settings(tmp_path), analyze)
@@ -175,7 +238,20 @@ def test_failed_job_can_retry_without_leaking_exception(tmp_path):
         first = client.post("/api/cases/demo/analyze").json()
         failed = client.portal.call(wait_for_job, first["job_id"])
         assert failed.status == "failed"
+        assert failed.stage == "failed"
+        assert failed.progress == 80
         assert "secret" not in failed.error
+        assert expected_message in failed.error
+        assert "synthesizing" in failed.error
+        assert first["job_id"] in failed.error
+        assert "synthetic" not in failed.error
+        assert "secret" not in caplog.text
+        assert f"code={expected_code}" in caplog.text
+        assert "stage=synthesizing progress=80" in caplog.text
+        if isinstance(failure, InvalidModelOutput):
+            assert "validation=" in caplog.text
+            if "Extraction exceeds source duration" in str(failure):
+                assert "validation=Extraction exceeds source duration" in caplog.text
         retry = client.post("/api/cases/demo/analyze").json()
         assert retry["job_id"] != first["job_id"]
         assert client.portal.call(wait_for_job, retry["job_id"]).status == "completed"

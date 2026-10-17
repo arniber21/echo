@@ -38,6 +38,9 @@ def _validation_feedback(error: ValueError) -> str:
         "An event cannot support itself",
         "Case placement must be nonnegative",
         "Primary video must anchor the case clock",
+        "Primary video case placement must equal its source clock",
+        "Primary video events need tight placement ranges",
+        "Secondary video placement ranges must be nonnegative",
         "Primary video needs a finite uncertainty window",
         "Primary video uncertainty must remain tight",
         "Photos without relative capture metadata need an open end",
@@ -126,6 +129,12 @@ class GeminiProvider:
                     return result
                 except ValueError as error:
                     feedback = _validation_feedback(error)
+                    logger.warning(
+                        "Model output rejected schema=%s attempt=%d rule=%s",
+                        schema.__name__,
+                        attempt + 1,
+                        feedback,
+                    )
                     if attempt == 1:
                         raise InvalidModelOutput(
                             f"Gemini returned invalid evidence data after one retry: {feedback}"

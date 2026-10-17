@@ -18,7 +18,7 @@ from .prompts import (
 )
 from .provider import GeminiProvider
 from .types import AnalysisSettings, Extraction
-from .validation import validate_extraction, validate_synthesis
+from .validation import finalize_synthesis, validate_extraction, validate_synthesis
 
 Progress = Callable[[str, int], Awaitable[None]]
 
@@ -175,7 +175,7 @@ async def analyze(
             result = await get_provider().generate(
                 SYNTHESIS_PROMPT + json.dumps(records),
                 Analysis,
-                validate=lambda output: validate_synthesis(
+                validate=lambda output: finalize_synthesis(
                     output, canonical, extractions
                 ),
             )
