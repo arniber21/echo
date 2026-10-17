@@ -1,0 +1,103 @@
+import { expect, test, type Page } from '@playwright/test'
+import { fileURLToPath } from 'node:url'
+
+interface SourceReference { source_id: string; source_start: number | null; source_end: number | null }
+interface EvidenceEvent extends SourceReference { event_id: string; title: string; source_type: 'video' | 'audio' | 'photo'; case_best: number; supports: string[] }
+interface DemoCase { case_id: string; title: string; media_files: Array<{ source_id: string; filename: string }>; analysis: { events: EvidenceEvent[]; contradictions: Array<{ title: string; source_refs: SourceReference[] }> } }
+
+async function openDemo(page: Page): Promise<DemoCase> {
+  const response = await page.request.get('/api/cases/demo')
+  expect(response.ok()).toBeTruthy()
+  const demo: DemoCase = await response.json()
+  await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(demo.title)
+  await expect(page.getByText('Synthetic demo', { exact: true })).toBeVisible()
+  return demo
+}
+
+async function expectSeek(page: Page, kind: 'video' | 'audio', time: number): Promise<void> {
+  await expect.poll(async () => page.locator(kind).evaluate((element: HTMLMediaElement) => element.currentTime)).toBeCloseTo(time, 1)
+}
+
+test('pre-analyzed demo traces events to playable evidence and both sides of a conflict', async ({ page }) => {
+  const consoleErrors: string[] = []
+  page.on('pageerror', error => consoleErrors.push(error.message))
+  const demo = await openDemo(page)
+  await expect(page.locator('.timeline-row')).toHaveCount(demo.analysis.events.length)
+  for (const event of demo.analysis.events) {
+    expect(demo.media_files.some(source => source.source_id === event.source_id)).toBeTruthy()
+  }
+  const impact = demo.analysis.events.find(event => event.event_id === 'impact')
+  const testimony = demo.analysis.events.find(event => event.source_type === 'audio')
+  if (!impact || !testimony || impact.source_start === null || testimony.source_start === null) throw new Error('Demo fixture lacks seekable events')
+  await page.getByRole('button', { name: new RegExp(impact.title) }).click()
+  await expectSeek(page, 'video', impact.source_start)
+  await page.getByRole('button', { name: new RegExp(testimony.title) }).click()
+  await expectSeek(page, 'audio', testimony.source_start)
+  expect(testimony.source_start).not.toEqual(testimony.case_best)
+  await page.getByRole('tab', { name: /Missing evidence/ }).click()
+  await expect(page.getByRole('heading', { name: 'Original photo timestamps' })).toBeVisible()
+  await page.getByRole('tab', { name: /Contradictions/ }).click()
+  const conflict = page.locator('.finding-card.conflict').first()
+  await expect(conflict).toBeVisible()
+  const refs = conflict.locator('.source-references button')
+  await expect(refs).toHaveCount(2)
+  await refs.nth(0).click()
+  await expectSeek(page, 'video', demo.analysis.contradictions[0]!.source_refs[0]!.source_start ?? 0)
+  await refs.nth(1).click()
+  await expectSeek(page, 'audio', demo.analysis.contradictions[0]!.source_refs[1]!.source_start ?? 0)
+  await page.screenshot({ path: 'test-results/workspace-desktop.png', fullPage: true })
+  expect(consoleErrors).toEqual([])
+})
+
+test('report retains every evidence source and uncertainty labels in print', async ({ page }) => {
+  const demo = await openDemo(page)
+  await page.getByRole('link', { name: /View report/ }).click()
+  await expect(page).toHaveURL(/\/report\?case=demo/)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(demo.title)
+  for (const source of demo.media_files) await expect(page.locator('table').getByText(source.filename, { exact: true })).toBeVisible()
+  await expect(page.getByText('Unverified AI-assisted reconstruction', { exact: true })).toBeVisible()
+  await page.emulateMedia({ media: 'print' })
+  await expect(page.getByRole('button', { name: /Print/ })).toBeHidden()
+  await page.pdf({ path: 'test-results/demo-report.pdf', format: 'A4', printBackground: true })
+  await page.screenshot({ path: 'test-results/report-print.png', fullPage: true })
+})
+
+test('multimodal upload analyzes unattended and persists through reload', async ({ page }) => {
+  await openDemo(page)
+  await page.getByRole('button', { name: 'New case' }).click()
+  const files = ['demo-video.mp4', 'demo-audio.m4a', 'demo-photo-front.jpg', 'demo-photo-side.jpg']
+    .map(name => fileURLToPath(new URL(`../../demo/media/${name}`, import.meta.url)))
+  await page.getByLabel('Choose evidence files').setInputFiles(files)
+  await page.getByRole('button', { name: /Create case with 4 files/ }).click()
+  await expect(page.getByRole('button', { name: /Analyze evidence/ })).toBeEnabled()
+  await page.getByLabel('Analysis mode').selectOption('mock')
+  await page.getByRole('button', { name: /Analyze evidence/ }).click()
+  await expect(page.getByRole('button', { name: /Re-analyze/ })).toBeEnabled({ timeout: 30_000 })
+  await expect(page.locator('.timeline-row')).toHaveCount(4)
+  await expect(page.locator('.analysis-mode-notice')).toContainText(/simulat|mock/i)
+  await expect(page.getByRole('tab', { name: /Contradictions/ })).toHaveCount(0)
+  const reportHref = await page.getByRole('link', { name: /View report/ }).getAttribute('href')
+  expect(reportHref).toMatch(/case=/)
+  expect(reportHref).not.toContain('case=demo')
+  await page.reload()
+  await expect(page.locator('.timeline-row')).toHaveCount(4)
+  await expect(page.locator('.analysis-mode-notice')).toContainText(/simulat|mock/i)
+})
+
+test('demo loads without external requests and fits a narrow viewport', async ({ page }) => {
+  const external: string[] = []
+  await page.route('**/*', async route => {
+    const url = new URL(route.request().url())
+    if (!['127.0.0.1', 'localhost'].includes(url.hostname)) {
+      external.push(url.origin)
+      await route.abort()
+    } else await route.continue()
+  })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await openDemo(page)
+  await expect(page.locator('.timeline-row')).toHaveCount(5)
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy()
+  await page.screenshot({ path: 'test-results/workspace-mobile.png', fullPage: true })
+  expect(external).toEqual([])
+})

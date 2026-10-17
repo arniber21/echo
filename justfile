@@ -35,9 +35,13 @@ build:
 
 # Exercise Gemini against the synthetic demo; requires backend/.env key.
 check-live:
-    uv run --project backend python scripts/check_live.py
+    uv run --project backend python -m rewind.analysis.check_live --root .
 
 # Run browser acceptance checks against servers started by `just demo-mock`.
 check-browser:
     cd e2e && bun install --frozen-lockfile
     cd e2e && bunx playwright test
+
+# Download and splice attributed real dashcam data under ignored data/footage/.
+prepare-footage:
+    python3 scripts/prepare_dashcam.py

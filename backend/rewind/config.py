@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     )
     data_dir: Path = ROOT / "data"
     gemini_api_key: SecretStr | None = None
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.8-flash"
     analysis_mode: Literal["auto", "mock", "live"] = Field(
         default="auto", validation_alias="REWIND_ANALYSIS_MODE"
     )

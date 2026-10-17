@@ -56,7 +56,7 @@
         "source_end": 8.0,
         "event_id": "approach",
         "title": "Vehicle approaches the junction",
-        "description": "The synthetic dashcam sequence shows the vehicle moving toward the junction.",
+        "description": "The synthetic overhead sequence shows the vehicle moving toward the junction.",
         "source_type": "video",
         "case_min": 3.5,
         "case_best": 4,
@@ -92,12 +92,12 @@
         "source_end": 12,
         "event_id": "testimony",
         "title": "Witness recalls a green signal",
-        "description": "The synthetic voice memo states that the traffic signal was green before contact. This is testimony, not a verified observation.",
+        "description": "The synthetic voice memo states that the traffic signal was green at contact. This is testimony, not a verified observation.",
         "source_type": "audio",
         "case_min": 3.0,
-        "case_best": 6.0,
-        "case_max": 8.0,
-        "alignment_basis": "Statement refers to the period before impact; exact alignment is uncertain.",
+        "case_best": 8.0,
+        "case_max": 10.0,
+        "alignment_basis": "The testimony refers to contact, shown at video second 8; exact recalled timing is uncertain.",
         "alignment_confidence": 0.45,
         "confidence": 0.88,
         "verification_status": "unverified",
@@ -147,7 +147,7 @@
     ],
     "summary": [
       {
-        "text": "The synthetic dashcam illustrates an approach followed by vehicle contact around 8 seconds.",
+        "text": "The synthetic overhead video illustrates an approach followed by vehicle contact around 8 seconds.",
         "source_refs": [
           {
             "source_id": "demo-video",
