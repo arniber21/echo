@@ -1,0 +1,31 @@
+name: Work item
+description: A scoped feature, bug, evaluation, or maintenance task
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Problem and intended result
+      description: Describe observable behavior. Search existing issues first.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria and verification
+      description: Use checkboxes. Separate simulated checks from live-model evaluation.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and related issues
+      description: Link blockers and overlapping work, or write None.
+    validations:
+      required: true
+  - type: textarea
+    id: ownership
+    attributes:
+      label: Ownership and coordination
+      description: Before work starts, assign the owner, add status:in-progress, and record the branch/worktree and surfaces being changed. Leave unclaimed work status:ready.
+    validations:
+      required: true

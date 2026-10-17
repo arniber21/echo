@@ -87,11 +87,30 @@ With a key, Analyze uses Gemini and reports a readable error if it fails. Errors
 never silently substitute mock evidence. Previously completed analysis remains
 saved on the case, and exact-content extraction caches can be reused on retry.
 
-Original uploads and SQLite are stored under `data/`. Gemini is the sole external
-recipient of evidence during live analysis. Use synthetic or consented media.
+Original uploads and SQLite are stored under `data/`. Live analysis sends evidence
+to Gemini; when configured, sampled images and extracted text also go to TypeSafe.
 Per-file extraction and synthesis are cached by content, model, and prompt version;
 uploading identical bytes again reuses analysis and remaps source references to the
 new case. Cache hits do not call Gemini.
+
+## Jev evidence checks
+
+Set `TYPESAFE_API_KEY` server-side to enable Jev image and text judgments during
+live analysis. The model is pinned to `jev-1.14.0`; every image/Box request sends
+`TypeSafe-Danger-Zone-Images: true`. `REWIND_TYPESAFE_ENABLED=false` disables it.
+The bounded sample count is `REWIND_TYPESAFE_MAX_FRAMES` (default 8 per video).
+
+Jev classifies sampled images, labels extraction text, and checks summary claims
+against their cited source intervals. **Evidence signals** shows saved probabilities
+and source-time navigation. These signals remain separate from accepted claims and
+working memory. They are cached by content, model and question versions, and older
+reconstructions preserve their own results. Failures leave useful partial results
+and do not fail detailed reconstruction. Simulated analysis makes no provider calls.
+
+See [capabilities, examples and evaluation plan](docs/typesafe-images-research.md).
+Accuracy and cost comparisons are tracked in GitHub issue #13; sampled negatives
+must not be used to rule out events between frames.
+
 
 ## Commands
 
@@ -152,3 +171,5 @@ with the full incident against human annotations.
 
 See [SPEC.md](SPEC.md), [IMPLEMENTATION.md](IMPLEMENTATION.md), and
 [docs/demo-script.md](docs/demo-script.md) for scope, boundaries, and rehearsal.
+
+Contributor coordination: [CONTRIBUTING.md](CONTRIBUTING.md). Claim an issue before starting work.

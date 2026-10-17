@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     seed_demo: bool = Field(default=False, validation_alias="REWIND_SEED_DEMO")
     gemini_api_key: SecretStr | None = None
     gemini_model: str = "gemini-3.8-flash"
+    typesafe_api_key: SecretStr | None = None
+    typesafe_model: str = "jev-1.14.0"
+    typesafe_enabled: bool = Field(
+        default=True, validation_alias="REWIND_TYPESAFE_ENABLED"
+    )
+    typesafe_max_frames: int = Field(
+        default=8, ge=1, le=24, validation_alias="REWIND_TYPESAFE_MAX_FRAMES"
+    )
     analysis_mode: Literal["auto", "mock", "live"] = Field(
         default="auto", validation_alias="REWIND_ANALYSIS_MODE"
     )

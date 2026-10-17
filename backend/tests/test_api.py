@@ -374,7 +374,9 @@ def test_operator_mock_mode_prevents_live_requests(
 ):
     received_modes = []
 
-    async def capture_analysis(case, paths, progress, *, settings):
+    async def capture_analysis(
+        case, paths, progress, *, settings, intelligence_sink=None
+    ):
         assert settings.api_key == "configured-test-key"
         received_modes.append(settings.mode)
         return Analysis(events=[], summary=[], mode="mock")
@@ -788,3 +790,81 @@ def test_annotation_parser_closes_uploads_on_validation_error(tmp_path):
         )
     assert upload.file.closed
     assert not (tmp_path / "never-created").exists()
+
+
+@pytest.mark.parametrize("provider_fails", [False, True])
+def test_classifier_observations_persist_without_becoming_accepted_claims(
+    tmp_path, monkeypatch, provider_fails
+):
+    from rewind.intelligence.models import EvidenceIntelligence, SourceIntelligence
+
+    async def analyze_with_signals(
+        case, paths, progress, *, settings, intelligence_sink
+    ):
+        assert settings.typesafe_api_key == "configured-classifier-key"
+        await progress("classifying_evidence", 8)
+        await intelligence_sink(
+            EvidenceIntelligence(
+                model="jev-1.14.0",
+                version="test",
+                status="complete",
+                sources=[
+                    SourceIntelligence(
+                        source_id=case.media_files[0].source_id,
+                        labels={
+                            "incident_relevant": 0.4
+                            if case.evidence_revision == 1
+                            else 0.9
+                        },
+                    )
+                ],
+            )
+        )
+        if provider_fails:
+            raise TimeoutError
+        return Analysis(events=[], summary=[], mode="live")
+
+    monkeypatch.setattr("rewind.analysis.analyze", analyze_with_signals)
+    app = create_app(settings(tmp_path, typesafe_api_key="configured-classifier-key"))
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/cases", files=[("files", ("source.jpg", jpeg()))]
+        ).json()
+        case_id = created["case_id"]
+        if provider_fails:
+            job = client.post(f"/api/cases/{case_id}/analyze").json()
+
+            async def wait():
+                for _ in range(100):
+                    current = app.state.store.get_job(job["job_id"])
+                    if current.status == "failed":
+                        return
+                    await asyncio.sleep(0.01)
+                pytest.fail("Expected failed generation job")
+
+            client.portal.call(wait)
+            current = client.get(f"/api/cases/{case_id}").json()
+            assert current["analysis"] is None and current["memory"] is None
+        else:
+            current = finish_job(client, app, case_id)
+        assert (
+            current["intelligence"]["sources"][0]["labels"]["incident_relevant"] == 0.4
+        )
+        if not provider_fails:
+            client.post(
+                f"/api/cases/{case_id}/media", files=[("files", ("more.jpg", jpeg()))]
+            )
+            updated = finish_job(client, app, case_id)
+            assert (
+                updated["intelligence"]["sources"][0]["labels"]["incident_relevant"]
+                == 0.9
+            )
+            assert (
+                updated["analysis_history"][0]["intelligence"]["sources"][0]["labels"][
+                    "incident_relevant"
+                ]
+                == 0.4
+            )
+    with TestClient(create_app(settings(tmp_path))) as client:
+        saved = client.get(f"/api/cases/{case_id}").json()
+        assert saved["intelligence"] is not None

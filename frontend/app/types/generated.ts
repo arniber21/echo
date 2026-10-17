@@ -156,7 +156,7 @@ export interface Job {
   job_id: string
   case_id: string
   status: "queued" | "running" | "completed" | "failed"
-  stage: "uploading" | "analyzing_video" | "analyzing_audio" | "analyzing_photos" | "synthesizing" | "completed" | "failed"
+  stage: "uploading" | "classifying_evidence" | "checking_claims" | "analyzing_video" | "analyzing_audio" | "analyzing_photos" | "synthesizing" | "completed" | "failed"
   progress: number
   error: string | null
 }

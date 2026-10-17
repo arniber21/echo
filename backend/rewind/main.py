@@ -19,6 +19,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from rewind.analysis.errors import classify_failure
 from rewind.config import ROOT, Settings
+from rewind.intelligence.models import EvidenceIntelligence
 from rewind.memory import project_memory
 from rewind.models import (
     Analysis,
@@ -273,6 +274,11 @@ def create_app(
 
     async def run_analysis(job: Job, case: Case, mode: str):
         current_job = job
+        intelligence_result: EvidenceIntelligence | None = None
+
+        async def capture_intelligence(report: EvidenceIntelligence) -> None:
+            nonlocal intelligence_result
+            intelligence_result = report
 
         async def progress(stage: str, percent: int):
             nonlocal current_job
@@ -306,7 +312,13 @@ def create_app(
                             model=config.gemini_model,
                             mode=mode,
                             cache_dir=config.data_dir / "cache",
+                            typesafe_api_key=config.typesafe_api_key.get_secret_value()
+                            if config.typesafe_enabled and config.typesafe_api_key
+                            else None,
+                            typesafe_model=config.typesafe_model,
+                            typesafe_max_frames=config.typesafe_max_frames,
                         ),
+                        intelligence_sink=capture_intelligence,
                     )
                 validate_analysis(analysis, case.media_files)
                 async with case_lock(case.case_id):
@@ -336,9 +348,11 @@ def create_app(
                                     for item in current.analyzed_media_files
                                 ],
                                 analysis=current.analysis,
+                                intelligence=current.intelligence,
                             )
                         )
                     current.analysis = analysis
+                    current.intelligence = intelligence_result
                     current.analyzed_revision = current.evidence_revision
                     current.analyzed_at = datetime.now(UTC)
                     current.memory = project_memory(
@@ -375,6 +389,15 @@ def create_app(
             )
             raise
         except Exception as error:  # noqa: BLE001 - job boundary isolates provider failures
+            if intelligence_result is not None:
+                async with case_lock(case.case_id):
+                    current = require_case(case.case_id)
+                    if (
+                        current.analysis is None
+                        and current.evidence_revision == case.evidence_revision
+                    ):
+                        current.intelligence = intelligence_result
+                        store.save_case(current)
             failure = classify_failure(error)
             # Deliberately omit exception text, traceback, headers and model output.
             logger.error(

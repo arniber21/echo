@@ -189,6 +189,8 @@ class Job(Contract):
     status: Literal["queued", "running", "completed", "failed"]
     stage: Literal[
         "uploading",
+        "classifying_evidence",
+        "checking_claims",
         "analyzing_video",
         "analyzing_audio",
         "analyzing_photos",

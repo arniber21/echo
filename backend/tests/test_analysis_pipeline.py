@@ -534,3 +534,70 @@ def test_primary_clock_is_derived_without_changing_secondary_alignment(case):
     anchored.source_start += 1
     with pytest.raises(ValueError, match="changed source"):
         finalize_synthesis(result, [primary, secondary], extractions)
+
+
+@pytest.mark.parametrize("failure", [None, "scan", "text", "close"])
+def test_jev_results_remap_to_real_sources_and_never_fail_reconstruction(
+    case, tmp_path, monkeypatch, failure
+):
+    from rewind.intelligence.models import EvidenceIntelligence, SourceIntelligence
+
+    class Classifier:
+        def __init__(self, **kwargs):
+            pass
+
+        async def scan_sources(self, sources, paths):
+            if failure == "scan":
+                raise RuntimeError("private-provider-error")
+            return EvidenceIntelligence(
+                model="jev-1.14.0",
+                version="test",
+                status="complete",
+                sources=[
+                    SourceIntelligence(source_id=source.source_id) for source in sources
+                ],
+            )
+
+        async def assess_analysis(self, analysis, records, report):
+            if failure == "text":
+                raise RuntimeError("private-provider-error")
+            assert all(record["source_id"].startswith("source-") for record in records)
+            return report
+
+        async def close(self):
+            if failure == "close":
+                raise RuntimeError("private-provider-error")
+
+    monkeypatch.setattr("rewind.intelligence.service.JevIntelligence", Classifier)
+    monkeypatch.setattr(pipeline, "GeminiProvider", FakeProvider)
+    video = case.media_files[0]
+    case = case.model_copy(update={"media_files": [video], "analysis": None})
+    path = tmp_path / "video.mp4"
+    path.write_bytes(b"stable video bytes")
+    sink = AsyncMock()
+    progress = AsyncMock()
+    result = asyncio.run(
+        analyze(
+            case,
+            {video.source_id: path},
+            progress,
+            settings=AnalysisSettings(
+                api_key="test",
+                typesafe_api_key="typesafe-test",
+                mode="live",
+                cache_dir=tmp_path / "cache",
+            ),
+            intelligence_sink=sink,
+        )
+    )
+    assert result.events[0].source_id == video.source_id
+    reports = [call.args[0] for call in sink.await_args_list]
+    assert len(reports) == 2
+    if failure == "scan":
+        assert reports[-1].status == "unavailable"
+    else:
+        assert reports[-1].sources[0].source_id == video.source_id
+        assert reports[-1].status == ("partial" if failure == "text" else "complete")
+    assert "private-provider-error" not in reports[-1].model_dump_json()
+    stages = [call.args[0] for call in progress.await_args_list]
+    assert "classifying_evidence" in stages and "checking_claims" in stages

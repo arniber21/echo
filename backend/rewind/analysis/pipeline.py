@@ -3,9 +3,11 @@
 import asyncio
 import hashlib
 import json
+import logging
 from collections.abc import Awaitable, Callable, Mapping
 from pathlib import Path
 
+from rewind.intelligence.models import EvidenceIntelligence
 from rewind.models import Analysis, Case, MediaFile, validate_analysis
 
 from .cache import JsonCache, cache_key
@@ -21,6 +23,8 @@ from .types import AnalysisSettings, Extraction
 from .validation import finalize_synthesis, validate_extraction, validate_synthesis
 
 Progress = Callable[[str, int], Awaitable[None]]
+IntelligenceSink = Callable[[EvidenceIntelligence], Awaitable[None]]
+logger = logging.getLogger(__name__)
 
 
 def _digest(path: Path) -> str:
@@ -51,6 +55,7 @@ async def analyze(
     progress: Progress,
     *,
     settings: AnalysisSettings | None = None,
+    intelligence_sink: IntelligenceSink | None = None,
 ) -> Analysis:
     """Analyze all case files. A live error is never silently replaced by mock data."""
     settings = settings or AnalysisSettings()
@@ -87,6 +92,22 @@ async def analyze(
     cache = JsonCache(settings.cache_dir)
     extractions: dict[str, Extraction] = {}
     provider: GeminiProvider | None = None
+    intelligence_service = None
+    intelligence_report: EvidenceIntelligence | None = None
+
+    async def publish_intelligence(report: EvidenceIntelligence) -> None:
+        if intelligence_sink is not None:
+            mapped = report.model_copy(
+                update={
+                    "sources": [
+                        source.model_copy(
+                            update={"source_id": real_ids[source.source_id]}
+                        )
+                        for source in report.sources
+                    ]
+                }
+            )
+            await intelligence_sink(mapped)
 
     def get_provider() -> GeminiProvider:
         nonlocal provider
@@ -95,6 +116,31 @@ async def analyze(
         return provider
 
     try:
+        if settings.typesafe_api_key:
+            intelligence_report = EvidenceIntelligence(
+                model=settings.typesafe_model,
+                version="unavailable",
+                status="unavailable",
+            )
+            await progress("classifying_evidence", 8)
+            try:
+                from rewind.intelligence.service import JevIntelligence
+
+                intelligence_service = JevIntelligence(
+                    api_key=settings.typesafe_api_key,
+                    model=settings.typesafe_model,
+                    cache_dir=settings.cache_dir,
+                    max_frames=settings.typesafe_max_frames,
+                )
+                intelligence_report = await intelligence_service.scan_sources(
+                    canonical, paths
+                )
+            except Exception:  # noqa: BLE001 - optional classifiers cannot fail reconstruction
+                logger.warning("Jev visual classification unavailable")
+                intelligence_report.diagnostics.append(
+                    "visual_classification_unavailable"
+                )
+            await publish_intelligence(intelligence_report)
         for index, media in enumerate(canonical):
             stage = {
                 "video": "analyzing_video",
@@ -193,7 +239,32 @@ async def analyze(
                     "notice": "Cached AI analysis for these exact source files. All findings remain unverified.",
                 }
             )
+        if intelligence_service is not None and intelligence_report is not None:
+            await progress("checking_claims", 95)
+            try:
+                intelligence_report = await intelligence_service.assess_analysis(
+                    result, records, intelligence_report
+                )
+            except Exception:  # noqa: BLE001 - preserve the completed reconstruction
+                logger.warning("Jev text assessment unavailable")
+                intelligence_report = intelligence_report.model_copy(
+                    update={
+                        "status": "partial"
+                        if intelligence_report.sources
+                        else "unavailable",
+                        "diagnostics": [
+                            *intelligence_report.diagnostics,
+                            "text_assessment_unavailable",
+                        ],
+                    }
+                )
+            await publish_intelligence(intelligence_report)
         return validate_analysis(_remap(result, real_ids), case.media_files)
     finally:
         if provider is not None:
             await provider.close()
+        if intelligence_service is not None:
+            try:
+                await intelligence_service.close()
+            except Exception:  # noqa: BLE001 - classifier cleanup cannot hide valid output
+                logger.warning("Jev client cleanup unavailable")

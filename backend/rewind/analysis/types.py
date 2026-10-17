@@ -15,6 +15,9 @@ class AnalysisSettings:
     cache_dir: Path = Path("data/cache")
     upload_timeout_seconds: float = 180
     request_timeout_seconds: float = 180
+    typesafe_api_key: str | None = None
+    typesafe_model: str = "jev-1.14.0"
+    typesafe_max_frames: int = 8
 
 
 class ExtractedEvent(BaseModel):
