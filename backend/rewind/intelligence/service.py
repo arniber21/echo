@@ -380,6 +380,48 @@ class JevIntelligence:
             pending = incomplete
         return results, tokens
 
+    async def _evaluate_images(
+        self, role: str, state: dict, questions: dict, images: dict[str, bytes]
+    ) -> tuple[Evaluation, int]:
+        """Cache a relationship judgment across all content-addressed images."""
+        identity = {
+            **state,
+            "image_hashes": {
+                name: hashlib.sha256(image).hexdigest()
+                for name, image in images.items()
+            },
+        }
+        path = self._cache_path(role, identity, questions, None)
+        cached = await self._cached(path, questions)
+        if cached is not None:
+            return cached, 0
+        payload = {
+            "model": self.model,
+            "state": state,
+            "questions": questions,
+            "assets": {
+                f"rewind-view-asset-{name}": {"type": "image", "part": name}
+                for name in images
+            },
+        }
+        envelope = await self._request(payload, images)
+        result = Evaluation.model_validate(envelope.model_dump())
+        if not self._valid_answers(result, questions):
+            raise ValueError("Unexpected classifier response contract")
+        await self._save(path, result)
+        return result, result.usage.input_tokens
+
+    async def compare_views(
+        self,
+        media: list[MediaFile],
+        paths: Mapping[str, Path],
+        records: list[dict],
+        report: EvidenceIntelligence,
+    ) -> EvidenceIntelligence:
+        from .viewpoints import compare_views
+
+        return await compare_views(self, media, paths, records, report)
+
     @staticmethod
     def _probabilities(result: Evaluation, names: dict[str, str]) -> dict[str, float]:
         values = {}
