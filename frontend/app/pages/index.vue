@@ -43,10 +43,12 @@ const supportedIds = computed(
 )
 const stageLabels: Record<string, string> = {
   uploading: 'Uploading files',
+  classifying_evidence: 'Scanning evidence',
   analyzing_video: 'Analyzing video',
   analyzing_audio: 'Analyzing audio',
   analyzing_photos: 'Analyzing photos',
   synthesizing: 'Updating analysis',
+  checking_claims: 'Checking claims',
   completed: 'Analysis complete',
   failed: 'Analysis interrupted',
 }
