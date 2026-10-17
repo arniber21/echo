@@ -6,9 +6,11 @@ const props = defineProps<{
   events: Event[]
   media: MediaFile[]
   selectedId: string | null
+  anchorMedia?: MediaFile[]
+  analyzedSourceIds?: string[]
 }>()
 const emit = defineEmits<{ select: [event: Event] }>()
-const anchor = computed(() => primaryVideo(props.media))
+const anchor = computed(() => primaryVideo(props.anchorMedia ?? props.media))
 const extent = computed(() => caseExtent(props.events, props.media))
 const ticks = computed(() => Array.from({ length: 5 }, (_, index) => (extent.value * index) / 4))
 const lanes = computed(() =>
@@ -100,7 +102,11 @@ function eventDescription(event: Event): string {
             >Time unknown →</span
           >
         </button>
-        <span v-if="!lane.ranges.length" class="unified-no-events">No extracted events</span>
+        <span v-if="!lane.ranges.length" class="unified-no-events">{{
+          analyzedSourceIds && !analyzedSourceIds.includes(lane.source.source_id)
+            ? 'Not analyzed yet'
+            : 'No extracted events'
+        }}</span>
       </div>
     </div>
     <div class="unified-footer">

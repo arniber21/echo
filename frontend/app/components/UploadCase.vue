@@ -1,10 +1,13 @@
 <script setup lang="ts">
-const props = defineProps<{ busy: boolean }>()
+const props = defineProps<{ busy: boolean; append?: boolean }>()
 const emit = defineEmits<{ upload: [files: File[], title: string] }>()
 const open = ref(false)
 const title = ref('')
 const files = ref<File[]>([])
 const input = ref<HTMLInputElement | null>(null)
+watch(open, (value) => {
+  if (value) files.value = []
+})
 function pick(event: globalThis.Event) {
   if (event.target instanceof HTMLInputElement) files.value = Array.from(event.target.files ?? [])
 }
@@ -21,12 +24,16 @@ function submit() {
 <template>
   <UModal
     v-model:open="open"
-    title="Start a new reconstruction"
-    description="Bring your original evidence together in one workspace."
+    :title="append ? 'Add evidence to this case' : 'Start a new reconstruction'"
+    :description="
+      append
+        ? 'Keep the same case. Your existing reconstruction stays available until you update it.'
+        : 'Start with one video, or bring several sources together. You can add more evidence later.'
+    "
     ><UButton icon="i-lucide-plus" color="neutral" variant="outline">New case</UButton
     ><template #body
       ><div class="upload-form">
-        <UFormField label="Case title"
+        <UFormField v-if="!append" label="Case title"
           ><UInput
             v-model="title"
             placeholder="e.g. Intersection incident · October 17"
@@ -66,7 +73,8 @@ function submit() {
           block
           icon="i-lucide-arrow-right"
           @click="submit"
-          >Create case with {{ files.length || 'your' }} files</UButton
+          >{{ append ? 'Add' : 'Create case with' }} {{ files.length || 'your' }}
+          {{ files.length === 1 ? 'file' : 'files' }}</UButton
         >
       </div></template
     ></UModal

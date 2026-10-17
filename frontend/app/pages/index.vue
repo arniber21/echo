@@ -1,20 +1,26 @@
 <script setup lang="ts">
 import type { Event, MediaFile, SourceRef } from '../types/generated'
 import { eventSourceReference, formatTime, placementLabel } from '../utils/timeline'
-const { currentCase, job, busy, error, load, upload, analyze } = useCaseWorkspace()
+const { currentCase, job, busy, error, load, upload, appendEvidence, analyze } = useCaseWorkspace()
+const { selectedRevision, view, displayedAnalysis, media, needsUpdate } =
+  useReconstructionHistory(currentCase)
+const clockMedia = computed(() =>
+  displayedAnalysis.value
+    ? media.value.filter((source) => view.value?.sourceIds.includes(source.source_id))
+    : media.value,
+)
 const route = useRoute()
 const router = useRouter()
 const selectedSourceId = ref<string | null>(null)
 const selectedEvent = shallowRef<Event | null>(null)
 const reference = shallowRef<SourceRef | null>(null)
 const mode = ref<'auto' | 'mock' | 'live'>('auto')
-const media = computed(() => currentCase.value?.media_files ?? [])
 const selectedMedia = computed(
   () => media.value.find((file) => file.source_id === selectedSourceId.value) ?? media.value[0],
 )
 const supportedIds = computed(
   () =>
-    currentCase.value?.analysis?.events
+    displayedAnalysis.value?.events
       .filter((event) => event.source_id === selectedMedia.value?.source_id)
       .flatMap((event) => event.supports) ?? [],
 )
@@ -35,6 +41,15 @@ watch(currentCase, (value) => {
     void router.replace({ query: { case: value.case_id } })
   }
 })
+watch(selectedRevision, () => {
+  selectedSourceId.value = media.value[0]?.source_id ?? null
+  selectedEvent.value = null
+  reference.value = null
+})
+function updateReconstruction() {
+  selectedRevision.value = null
+  void analyze(mode.value)
+}
 function selectFile(file: MediaFile) {
   selectedSourceId.value = file.source_id
   reference.value = { source_id: file.source_id, source_start: null, source_end: null }
@@ -83,19 +98,32 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : '
           <p>A clearer picture of what happened. Grounded in what you have.</p>
         </div>
         <div class="case-actions">
+          <UploadCase
+            v-if="currentCase && currentCase.case_id !== 'demo'"
+            append
+            :busy="busy"
+            @upload="appendEvidence"
+          />
           <UButton
             v-if="currentCase?.analysis"
             :to="`/report?case=${currentCase.case_id}`"
             icon="i-lucide-file-text"
             color="neutral"
             variant="outline"
-            >View report <UIcon name="i-lucide-arrow-up-right" /></UButton
+            >{{ selectedRevision === null ? 'View report' : 'Current report' }}
+            <UIcon name="i-lucide-arrow-up-right" /></UButton
           ><UButton
             :disabled="!currentCase || busy"
             :loading="busy"
             icon="i-lucide-sparkles"
-            @click="analyze(mode)"
-            >{{ currentCase?.analysis ? 'Re-analyze' : 'Analyze evidence' }}</UButton
+            @click="updateReconstruction"
+            >{{
+              needsUpdate
+                ? 'Update reconstruction'
+                : currentCase?.analysis
+                  ? 'Re-analyze'
+                  : 'Analyze evidence'
+            }}</UButton
           ><select v-model="mode" aria-label="Analysis mode" class="mode-select">
             <option value="auto">Auto mode</option>
             <option value="mock">Simulated analysis</option>
@@ -103,7 +131,7 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : '
           </select>
         </div>
       </div>
-      <div v-if="currentCase?.analysis?.mode === 'demo'" class="demo-banner">
+      <div v-if="displayedAnalysis?.mode === 'demo'" class="demo-banner">
         <div>
           <UIcon name="i-lucide-flask-conical" /><strong>Synthetic demo</strong
           ><span
@@ -112,8 +140,8 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : '
         </div>
         <span class="demo-tag">DEMO WORKSPACE</span>
       </div>
-      <div v-if="currentCase?.analysis?.notice" class="analysis-mode-notice">
-        <UIcon name="i-lucide-info" />{{ currentCase.analysis.notice }}
+      <div v-if="displayedAnalysis?.notice" class="analysis-mode-notice">
+        <UIcon name="i-lucide-info" />{{ displayedAnalysis.notice }}
       </div>
       <UAlert
         v-if="error"
@@ -137,12 +165,27 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : '
         </div>
         <UProgress :model-value="job?.progress ?? null" />
       </div>
+      <ReconstructionHistory
+        v-if="currentCase"
+        v-model:selected-revision="selectedRevision"
+        :incident="currentCase"
+        :busy="busy"
+      />
       <UnifiedTimeline
-        v-if="currentCase?.analysis?.events.length"
-        :events="currentCase.analysis.events"
+        v-if="displayedAnalysis?.events.length"
+        :events="displayedAnalysis.events"
         :media="media"
+        :anchor-media="clockMedia"
+        :analyzed-source-ids="view?.sourceIds"
         :selected-id="selectedEvent?.event_id ?? null"
         @select="selectEvent"
+      />
+      <WorkingAccount
+        v-if="currentCase?.memory && selectedRevision === null"
+        :memory="currentCase.memory"
+        :media="media"
+        :pending="currentCase.memory.revision !== currentCase.evidence_revision"
+        @select="selectReference"
       />
       <div v-if="currentCase" class="main-grid">
         <aside>
@@ -182,14 +225,15 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : '
             </div>
           </div>
           <IncidentTimeline
-            :events="currentCase.analysis?.events ?? []"
+            :events="displayedAnalysis?.events ?? []"
             :media="media"
+            :anchor-media="clockMedia"
             :selected-id="selectedEvent?.event_id ?? null"
             :supported-ids="supportedIds"
             @select="selectEvent"
           /><AnalysisInsights
-            v-if="currentCase.analysis"
-            :analysis="currentCase.analysis"
+            v-if="displayedAnalysis"
+            :analysis="displayedAnalysis"
             :media="media"
             @select="selectReference"
           />

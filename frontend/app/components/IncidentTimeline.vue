@@ -4,11 +4,12 @@ import { caseExtent, formatTime, placementLabel, primaryVideo, rangeStyle } from
 const props = defineProps<{
   events: Event[]
   media: MediaFile[]
+  anchorMedia?: MediaFile[]
   selectedId: string | null
   supportedIds: string[]
 }>()
 const emit = defineEmits<{ select: [event: Event] }>()
-const anchor = computed(() => primaryVideo(props.media))
+const anchor = computed(() => primaryVideo(props.anchorMedia ?? props.media))
 const extent = computed(() => caseExtent(props.events, props.media))
 const ordered = computed(() => [...props.events].sort((a, b) => a.case_best - b.case_best))
 const ticks = computed(() => Array.from({ length: 5 }, (_, index) => (extent.value * index) / 4))

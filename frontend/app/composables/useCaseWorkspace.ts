@@ -54,6 +54,21 @@ export function useCaseWorkspace() {
     })
   }
 
+  async function appendEvidence(files: File[]) {
+    if (!currentCase.value || !files.length) return
+    const caseId = currentCase.value.case_id
+    job.value = null
+    await run(async (signal) => {
+      const body = new FormData()
+      files.forEach((file) => body.append('files', file))
+      currentCase.value = await $fetch<Case>(`/api/cases/${encodeURIComponent(caseId)}/media`, {
+        method: 'POST',
+        body,
+        signal,
+      })
+    })
+  }
+
   async function analyze(mode: 'auto' | 'mock' | 'live') {
     if (!currentCase.value) return
     const caseId = currentCase.value.case_id
@@ -84,5 +99,5 @@ export function useCaseWorkspace() {
   }
 
   onScopeDispose(() => controller?.abort())
-  return { currentCase, job, busy, error, load, upload, analyze }
+  return { currentCase, job, busy, error, load, upload, appendEvidence, analyze }
 }
