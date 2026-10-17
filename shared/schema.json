@@ -89,6 +89,13 @@
           "title": "Media Count",
           "type": "integer"
         },
+        "media_files": {
+          "items": {
+            "$ref": "#/$defs/MediaFile"
+          },
+          "title": "Media Files",
+          "type": "array"
+        },
         "analysis": {
           "$ref": "#/$defs/Analysis"
         }
@@ -396,6 +403,9 @@
           ],
           "default": null,
           "title": "Captured At"
+        },
+        "metadata": {
+          "$ref": "#/$defs/SourceMetadata"
         }
       },
       "required": [
@@ -473,6 +483,44 @@
         "last_revision"
       ],
       "title": "MemoryEntry",
+      "type": "object"
+    },
+    "SourceMetadata": {
+      "additionalProperties": false,
+      "description": "User-reported context; never substitutes for observed content or EXIF.",
+      "properties": {
+        "label": {
+          "default": "",
+          "maxLength": 160,
+          "title": "Label",
+          "type": "string"
+        },
+        "recorded_by": {
+          "default": "",
+          "maxLength": 160,
+          "title": "Recorded By",
+          "type": "string"
+        },
+        "location": {
+          "default": "",
+          "maxLength": 240,
+          "title": "Location",
+          "type": "string"
+        },
+        "recorded_at": {
+          "default": "",
+          "maxLength": 160,
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "title": "SourceMetadata",
       "type": "object"
     },
     "SourceRef": {
@@ -599,6 +647,13 @@
             "type": "string"
           },
           "title": "Analyzed Source Ids",
+          "type": "array"
+        },
+        "analyzed_media_files": {
+          "items": {
+            "$ref": "#/$defs/MediaFile"
+          },
+          "title": "Analyzed Media Files",
           "type": "array"
         },
         "analysis_history": {

@@ -14,6 +14,7 @@ export interface AnalysisRevision {
   created_at: string
   media_source_ids: Array<string>
   media_count: number
+  media_files: Array<MediaFile>
   analysis: Analysis
 }
 
@@ -65,6 +66,7 @@ export interface MediaFile {
   size_bytes: number
   duration_seconds: number | null
   captured_at: string | null
+  metadata: SourceMetadata
 }
 
 export interface MemoryEntry {
@@ -75,6 +77,14 @@ export interface MemoryEntry {
   first_revision: number
   last_revision: number
   status: "active" | "superseded"
+}
+
+export interface SourceMetadata {
+  label: string
+  recorded_by: string
+  location: string
+  recorded_at: string
+  notes: string
 }
 
 export interface SourceRef {
@@ -95,6 +105,7 @@ export interface Case {
   analyzed_revision: number | null
   analyzed_at: string | null
   analyzed_source_ids: Array<string>
+  analyzed_media_files: Array<MediaFile>
   analysis_history: Array<AnalysisRevision>
   memory: CaseMemory | null
 }

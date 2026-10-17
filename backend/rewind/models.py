@@ -88,6 +88,16 @@ class Analysis(Contract):
     notice: str | None = None
 
 
+class SourceMetadata(Contract):
+    """User-reported context; never substitutes for observed content or EXIF."""
+
+    label: str = Field(default="", max_length=160)
+    recorded_by: str = Field(default="", max_length=160)
+    location: str = Field(default="", max_length=240)
+    recorded_at: str = Field(default="", max_length=160)
+    notes: str = Field(default="", max_length=4000)
+
+
 class MediaFile(Contract):
     source_id: str = Field(min_length=1, max_length=100)
     filename: str
@@ -98,6 +108,7 @@ class MediaFile(Contract):
     size_bytes: int = Field(ge=0)
     duration_seconds: float | None = Field(default=None, ge=0)
     captured_at: datetime | None = None
+    metadata: SourceMetadata = Field(default_factory=SourceMetadata)
 
 
 class MemoryEntry(Contract):
@@ -149,6 +160,7 @@ class AnalysisRevision(Contract):
     created_at: datetime
     media_source_ids: list[str]
     media_count: int = Field(ge=0)
+    media_files: list[MediaFile] = Field(default_factory=list)
     analysis: Analysis
 
 
@@ -162,6 +174,7 @@ class Case(Contract):
     analyzed_revision: int | None = Field(default=None, ge=1)
     analyzed_at: datetime | None = None
     analyzed_source_ids: list[str] = Field(default_factory=list)
+    analyzed_media_files: list[MediaFile] = Field(default_factory=list)
     analysis_history: list[AnalysisRevision] = Field(default_factory=list)
     memory: CaseMemory | None = None
 
