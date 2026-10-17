@@ -12,7 +12,14 @@
       "sha256": "synthetic-demo",
       "size_bytes": 0,
       "duration_seconds": 20.0,
-      "captured_at": null
+      "captured_at": null,
+      "metadata": {
+        "label": "",
+        "recorded_by": "",
+        "location": "",
+        "recorded_at": "",
+        "notes": ""
+      }
     },
     {
       "source_id": "demo-audio",
@@ -23,7 +30,14 @@
       "sha256": "synthetic-demo",
       "size_bytes": 0,
       "duration_seconds": 21.055,
-      "captured_at": null
+      "captured_at": null,
+      "metadata": {
+        "label": "",
+        "recorded_by": "",
+        "location": "",
+        "recorded_at": "",
+        "notes": ""
+      }
     },
     {
       "source_id": "demo-photo-front",
@@ -34,7 +48,14 @@
       "sha256": "synthetic-demo",
       "size_bytes": 0,
       "duration_seconds": null,
-      "captured_at": null
+      "captured_at": null,
+      "metadata": {
+        "label": "",
+        "recorded_by": "",
+        "location": "",
+        "recorded_at": "",
+        "notes": ""
+      }
     },
     {
       "source_id": "demo-photo-side",
@@ -45,7 +66,14 @@
       "sha256": "synthetic-demo",
       "size_bytes": 0,
       "duration_seconds": null,
-      "captured_at": null
+      "captured_at": null,
+      "metadata": {
+        "label": "",
+        "recorded_by": "",
+        "location": "",
+        "recorded_at": "",
+        "notes": ""
+      }
     }
   ],
   "analysis": {
@@ -250,5 +278,79 @@
     "demo-photo-side"
   ],
   "analysis_history": [],
-  "memory": null
+  "memory": null,
+  "analyzed_media_files": [
+    {
+      "source_id": "demo-video",
+      "filename": "demo-video.mp4",
+      "source_type": "video",
+      "mime_type": "video/mp4",
+      "url": "/api/media/demo-video",
+      "sha256": "synthetic-demo",
+      "size_bytes": 0,
+      "duration_seconds": 20.0,
+      "captured_at": null,
+      "metadata": {
+        "label": "",
+        "recorded_by": "",
+        "location": "",
+        "recorded_at": "",
+        "notes": ""
+      }
+    },
+    {
+      "source_id": "demo-audio",
+      "filename": "demo-audio.m4a",
+      "source_type": "audio",
+      "mime_type": "audio/mp4",
+      "url": "/api/media/demo-audio",
+      "sha256": "synthetic-demo",
+      "size_bytes": 0,
+      "duration_seconds": 21.055,
+      "captured_at": null,
+      "metadata": {
+        "label": "",
+        "recorded_by": "",
+        "location": "",
+        "recorded_at": "",
+        "notes": ""
+      }
+    },
+    {
+      "source_id": "demo-photo-front",
+      "filename": "demo-photo-front.jpg",
+      "source_type": "photo",
+      "mime_type": "image/jpeg",
+      "url": "/api/media/demo-photo-front",
+      "sha256": "synthetic-demo",
+      "size_bytes": 0,
+      "duration_seconds": null,
+      "captured_at": null,
+      "metadata": {
+        "label": "",
+        "recorded_by": "",
+        "location": "",
+        "recorded_at": "",
+        "notes": ""
+      }
+    },
+    {
+      "source_id": "demo-photo-side",
+      "filename": "demo-photo-side.jpg",
+      "source_type": "photo",
+      "mime_type": "image/jpeg",
+      "url": "/api/media/demo-photo-side",
+      "sha256": "synthetic-demo",
+      "size_bytes": 0,
+      "duration_seconds": null,
+      "captured_at": null,
+      "metadata": {
+        "label": "",
+        "recorded_by": "",
+        "location": "",
+        "recorded_at": "",
+        "notes": ""
+      }
+    }
+  ]
 }

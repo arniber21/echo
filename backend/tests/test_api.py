@@ -508,3 +508,193 @@ def test_concurrent_appends_do_not_lose_evidence(tmp_path):
             "photo-0.jpg",
             "photo-1.jpg",
         }
+
+
+def test_create_and_append_accept_ordered_source_annotations(tmp_path):
+    annotation = {
+        "label": "Northbound dashcam",
+        "recorded_by": "Alex",
+        "location": "Oak and First",
+        "recorded_at": "Around 9 pm, yesterday",
+        "notes": "User recollection; timestamp uncertain.",
+    }
+    with TestClient(create_app(settings(tmp_path))) as client:
+        response = client.post(
+            "/api/cases",
+            data={"metadata": json.dumps([annotation, {"label": "Second view"}])},
+            files=[("files", ("first.jpg", jpeg())), ("files", ("second.jpg", jpeg()))],
+        )
+        assert response.status_code == 201
+        case = response.json()
+        first, second = case["media_files"]
+        assert first["metadata"] == annotation
+        assert second["metadata"]["label"] == "Second view"
+        assert second["metadata"]["recorded_by"] == ""
+        assert first["captured_at"] is None  # Reported time never becomes EXIF time.
+        appended = client.post(
+            f"/api/cases/{case['case_id']}/media",
+            data={"metadata": json.dumps([{"label": "Later evidence"}])},
+            files=[("files", ("third.jpg", jpeg()))],
+        )
+        assert appended.status_code == 200
+        assert (
+            appended.json()["media_files"][-1]["metadata"]["label"] == "Later evidence"
+        )
+        assert appended.json()["media_files"][0] == first
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        "not-json",
+        "{}",
+        "[]",
+        '[{"unexpected":"value"}]',
+        json.dumps([{"notes": "x" * 4001}]),
+        json.dumps([{"label": 123}]),
+    ],
+)
+def test_invalid_metadata_rejected_before_writing(tmp_path, metadata):
+    with TestClient(create_app(settings(tmp_path))) as client:
+        initial = client.post(
+            "/api/cases",
+            data={"metadata": metadata},
+            files=[("files", ("initial.jpg", jpeg()))],
+        )
+        assert initial.status_code == 422
+        assert "metadata" in initial.json()["detail"].lower()
+        assert not (tmp_path / "media").exists()
+        case = client.post(
+            "/api/cases", files=[("files", ("original.jpg", jpeg()))]
+        ).json()
+        response = client.post(
+            f"/api/cases/{case['case_id']}/media",
+            data={"metadata": metadata},
+            files=[("files", ("new.jpg", jpeg()))],
+        )
+        assert response.status_code == 422
+        assert client.get(f"/api/cases/{case['case_id']}").json() == case
+        assert len(list((tmp_path / "media" / case["case_id"]).iterdir())) == 1
+
+
+def test_annotation_edit_retains_analysis_memory_and_exact_snapshot(tmp_path):
+    app = create_app(settings(tmp_path, analysis_mode="mock"))
+    original_metadata = {
+        "label": "Original label",
+        "recorded_by": "Original reporter",
+        "location": "Original corner",
+        "recorded_at": "Uncertain",
+        "notes": "Original note",
+    }
+    with TestClient(app) as client:
+        initial = client.post(
+            "/api/cases",
+            data={"metadata": json.dumps([original_metadata])},
+            files=[("files", ("evidence.jpg", jpeg()))],
+        ).json()
+        case_id = initial["case_id"]
+        first = finish_job(client, app, case_id)
+        source = first["media_files"][0]
+        revised_metadata = {
+            **original_metadata,
+            "label": "Revised label",
+            "recorded_at": "2025-01-01T12:00:00Z",
+        }
+        route = f"/api/cases/{case_id}/media/{source['source_id']}"
+        edited = client.patch(route, json=revised_metadata)
+        assert edited.status_code == 200
+        stale = edited.json()
+        assert stale["evidence_revision"] == 2
+        assert stale["analyzed_revision"] == 1
+        assert stale["analysis"] == first["analysis"]
+        assert stale["memory"] == first["memory"]
+        assert stale["analyzed_media_files"] == first["media_files"]
+        assert stale["media_files"][0] == {**source, "metadata": revised_metadata}
+        assert stale["media_files"][0]["captured_at"] is None
+        # Saving identical context does not invalidate another reconstruction.
+        assert client.patch(route, json=revised_metadata).json() == stale
+        second = finish_job(client, app, case_id)
+        archived_source = second["analysis_history"][0]["media_files"][0]
+        assert archived_source["metadata"] == original_metadata
+        assert second["analyzed_media_files"][0]["metadata"] == revised_metadata
+        assert client.get(source["url"]).content == jpeg()
+
+
+def test_legacy_annotation_snapshot_backfilled_before_edit(tmp_path):
+    app = create_app(settings(tmp_path, analysis_mode="mock"))
+    with TestClient(app) as client:
+        initial = client.post(
+            "/api/cases",
+            data={"metadata": '[{"label":"Original"}]'},
+            files=[("files", ("evidence.jpg", jpeg()))],
+        ).json()
+        first = finish_job(client, app, initial["case_id"])
+        legacy = app.state.store.get_case(first["case_id"])
+        legacy.analyzed_media_files = []
+        app.state.store.save_case(legacy)
+        source_id = first["media_files"][0]["source_id"]
+        patched = client.patch(
+            f"/api/cases/{first['case_id']}/media/{source_id}",
+            json={"label": "Changed"},
+        )
+        assert patched.status_code == 200
+        assert (
+            patched.json()["analyzed_media_files"][0]["metadata"]["label"] == "Original"
+        )
+
+
+def test_metadata_patch_checks_case_ownership_readonly_and_active_job(tmp_path):
+    from rewind.models import Job
+
+    app = create_app(settings(tmp_path))
+    with TestClient(app) as client:
+        first = client.post("/api/cases", files=[("files", ("a.jpg", jpeg()))]).json()
+        second = client.post("/api/cases", files=[("files", ("b.jpg", jpeg()))]).json()
+        source_id = first["media_files"][0]["source_id"]
+        assert (
+            client.patch(
+                f"/api/cases/{second['case_id']}/media/{source_id}",
+                json={"label": "Wrong case"},
+            ).status_code
+            == 404
+        )
+        assert (
+            client.patch(f"/api/cases/unknown/media/{source_id}", json={}).status_code
+            == 404
+        )
+        assert (
+            client.patch(
+                "/api/cases/demo/media/demo-video", json={"label": "Edit demo"}
+            ).status_code
+            == 409
+        )
+        app.state.store.save_job(
+            Job(
+                job_id="blocked",
+                case_id=first["case_id"],
+                status="queued",
+                stage="uploading",
+                progress=0,
+            )
+        )
+        assert (
+            client.patch(
+                f"/api/cases/{first['case_id']}/media/{source_id}",
+                json={"label": "Wait"},
+            ).status_code
+            == 409
+        )
+        assert client.get(f"/api/cases/{first['case_id']}").json() == first
+
+
+def test_annotation_parser_closes_uploads_on_validation_error(tmp_path):
+    from fastapi import HTTPException, UploadFile
+    from rewind.uploads import ingest_batch
+
+    upload = UploadFile(file=io.BytesIO(jpeg()), filename="image.jpg")
+    with pytest.raises(HTTPException, match="422"):
+        asyncio.run(
+            ingest_batch([upload], tmp_path / "never-created", settings(tmp_path), "[]")
+        )
+    assert upload.file.closed
+    assert not (tmp_path / "never-created").exists()

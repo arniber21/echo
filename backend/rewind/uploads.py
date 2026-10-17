@@ -10,9 +10,10 @@ from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile
 from PIL import Image, UnidentifiedImageError
+from pydantic import TypeAdapter, ValidationError
 
 from rewind.config import Settings
-from rewind.models import MediaFile, SourceType
+from rewind.models import MediaFile, SourceMetadata, SourceType
 
 
 def captured_at(path: Path) -> datetime | None:
@@ -162,30 +163,55 @@ async def ingest(
         await file.close()
 
 
+def parse_metadata(raw: str | None, file_count: int) -> list[SourceMetadata]:
+    """Validate ordered user context before any evidence is written to disk."""
+    if raw is None:
+        return [SourceMetadata() for _ in range(file_count)]
+    try:
+        annotations = TypeAdapter(list[SourceMetadata]).validate_json(raw)
+    except ValidationError as error:
+        raise HTTPException(
+            422,
+            "Metadata must be a JSON array of source annotations. Use text fields label (160), recorded_by (160), location (240), recorded_at (160), and notes (4000 characters).",
+        ) from error
+    if len(annotations) != file_count:
+        raise HTTPException(
+            422,
+            "Provide one metadata object per uploaded file, in the same order as the files.",
+        )
+    return annotations
+
+
 async def ingest_batch(
-    files: list[UploadFile], directory: Path, settings: Settings
+    files: list[UploadFile],
+    directory: Path,
+    settings: Settings,
+    metadata: str | None = None,
 ) -> tuple[list[MediaFile], dict[str, Path]]:
     """All-or-nothing batch staging shared by initial and incremental uploads."""
-    if not files or len(files) > settings.max_files:
-        for file in files:
-            await file.close()
-        raise HTTPException(422, f"Upload between 1 and {settings.max_files} files.")
-    directory.mkdir(parents=True)
-    media: list[MediaFile] = []
-    paths: dict[str, Path] = {}
-    total = 0
     try:
-        for file in files:
-            item, path = await ingest(file, directory, settings)
-            total += item.size_bytes
-            if total > settings.max_request_bytes:
-                raise HTTPException(413, "Upload exceeds the total request limit.")
-            media.append(item)
-            paths[item.source_id] = path
-        return media, paths
-    except BaseException:
-        shutil.rmtree(directory, ignore_errors=True)
-        raise
+        if not files or len(files) > settings.max_files:
+            raise HTTPException(
+                422, f"Upload between 1 and {settings.max_files} files."
+            )
+        annotations = parse_metadata(metadata, len(files))
+        directory.mkdir(parents=True)
+        media: list[MediaFile] = []
+        paths: dict[str, Path] = {}
+        total = 0
+        try:
+            for file, annotation in zip(files, annotations, strict=True):
+                item, path = await ingest(file, directory, settings)
+                item.metadata = annotation
+                total += item.size_bytes
+                if total > settings.max_request_bytes:
+                    raise HTTPException(413, "Upload exceeds the total request limit.")
+                media.append(item)
+                paths[item.source_id] = path
+            return media, paths
+        except BaseException:
+            shutil.rmtree(directory, ignore_errors=True)
+            raise
     finally:
         for file in files:
             await file.close()

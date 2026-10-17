@@ -25,6 +25,7 @@ from rewind.models import (
     AnalyzeRequest,
     Case,
     Job,
+    SourceMetadata,
     validate_analysis,
 )
 from rewind.storage import Store
@@ -74,6 +75,9 @@ def seed_demo(store: Store):
     case.analyzed_revision = case.evidence_revision
     case.analyzed_at = case.created_at
     case.analyzed_source_ids = [item.source_id for item in case.media_files]
+    case.analyzed_media_files = [
+        item.model_copy(deep=True) for item in case.media_files
+    ]
     if case.analysis is not None:
         case.memory = project_memory(
             None, case.analysis, case.evidence_revision, case.created_at
@@ -86,6 +90,9 @@ def seed_demo(store: Store):
             media.sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
             paths[media.source_id] = path
     validate_analysis(case.analysis, case.media_files)
+    case.analyzed_media_files = [
+        item.model_copy(deep=True) for item in case.media_files
+    ]
     store.save_case(case, paths)
 
 
@@ -114,7 +121,7 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "PATCH"],
         allow_headers=["Content-Type", "Range"],
     )
     app.state.store = store
@@ -164,10 +171,11 @@ def create_app(
     async def upload_case(
         files: Annotated[list[UploadFile], File()],
         title: Annotated[str, Form(max_length=160)] = "Untitled reconstruction",
+        metadata: Annotated[str | None, Form(max_length=512000)] = None,
     ):
         case_id = uuid4().hex
         directory = config.data_dir / "media" / case_id
-        media, paths = await ingest_batch(files, directory, config)
+        media, paths = await ingest_batch(files, directory, config, metadata)
         try:
             case = Case(
                 case_id=case_id,
@@ -182,7 +190,11 @@ def create_app(
             raise
 
     @app.post("/api/cases/{case_id}/media", response_model=Case)
-    async def append_media(case_id: str, files: Annotated[list[UploadFile], File()]):
+    async def append_media(
+        case_id: str,
+        files: Annotated[list[UploadFile], File()],
+        metadata: Annotated[str | None, Form(max_length=512000)] = None,
+    ):
         require_case(case_id)
         async with case_lock(case_id):
             try:
@@ -197,9 +209,10 @@ def create_app(
                         "Analysis is running. Wait for it to finish before adding evidence.",
                     )
                 directory = config.data_dir / "media" / case_id / uuid4().hex
-                media, paths = await ingest_batch(files, directory, config)
+                media, paths = await ingest_batch(files, directory, config, metadata)
                 try:
                     case = require_case(case_id)
+                    preserve_analyzed_media(case)
                     case.media_files.extend(media)
                     case.evidence_revision += 1
                     store.save_case(case, paths)
@@ -210,6 +223,46 @@ def create_app(
             finally:
                 for file in files:
                     await file.close()
+
+    def preserve_analyzed_media(case: Case) -> None:
+        """Backfill legacy snapshots before a user can replace their annotations."""
+        if case.analysis is not None and not case.analyzed_media_files:
+            analyzed_ids = set(case.analyzed_source_ids)
+            case.analyzed_media_files = [
+                item.model_copy(deep=True)
+                for item in case.media_files
+                if not analyzed_ids or item.source_id in analyzed_ids
+            ]
+
+    @app.patch("/api/cases/{case_id}/media/{source_id}", response_model=Case)
+    async def update_source_metadata(
+        case_id: str, source_id: str, metadata: SourceMetadata
+    ):
+        require_case(case_id)
+        async with case_lock(case_id):
+            case = require_case(case_id)
+            media = next(
+                (item for item in case.media_files if item.source_id == source_id), None
+            )
+            if media is None:
+                raise HTTPException(404, "Evidence source not found in this case.")
+            if case_id == "demo":
+                raise HTTPException(
+                    409,
+                    "The synthetic demo is read-only. Start a new reconstruction to annotate evidence.",
+                )
+            if store.active_job(case_id):
+                raise HTTPException(
+                    409,
+                    "Analysis is running. Wait for it to finish before editing evidence.",
+                )
+            if media.metadata == metadata:
+                return case
+            preserve_analyzed_media(case)
+            media.metadata = metadata
+            case.evidence_revision += 1
+            store.save_case(case)
+            return case
 
     async def run_analysis(job: Job, case: Case, mode: str):
         async def progress(stage: str, percent: int):
@@ -251,6 +304,7 @@ def create_app(
                         raise ValueError(
                             "Evidence changed during analysis; retry on the latest revision"
                         )
+                    preserve_analyzed_media(current)
                     if (
                         current.analysis is not None
                         and current.analyzed_revision is not None
@@ -266,6 +320,10 @@ def create_app(
                                 created_at=current.analyzed_at or current.created_at,
                                 media_count=len(current.analyzed_source_ids),
                                 media_source_ids=current.analyzed_source_ids.copy(),
+                                media_files=[
+                                    item.model_copy(deep=True)
+                                    for item in current.analyzed_media_files
+                                ],
                                 analysis=current.analysis,
                             )
                         )
@@ -280,6 +338,9 @@ def create_app(
                     )
                     current.analyzed_source_ids = [
                         item.source_id for item in current.media_files
+                    ]
+                    current.analyzed_media_files = [
+                        item.model_copy(deep=True) for item in current.media_files
                     ]
                     store.save_case(current)
                     store.save_job(
