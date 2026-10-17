@@ -1,0 +1,22 @@
+backend/rewind/analysis/content_alignment.py
+  s_4d6956e576b617::t_ddc405754d0139 10-11,46-116,136,147
+  s_4d6956e576b617::t_ccb48306c9e87b 117-135,137-146,148-165,347-349,384-385,389-394,398,404-412
+backend/tests/test_content_alignment.py
+  s_4d6956e576b617::t_898d0bb8c5c6be 167-196
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b27a716f76c562a963ae98060440cabbc8ee2d8a",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
