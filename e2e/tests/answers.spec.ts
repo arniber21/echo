@@ -26,6 +26,16 @@ test('question answers persist, stay pending until update, and retain exact hist
   const form = page.getByRole('form', { name: `Answer: ${question.title}`, exact: true })
   await form.getByLabel(`Response to ${question.title}`, { exact: true }).fill('I was driving the blue car. The camera clock was five minutes slow.')
   await form.getByLabel('Respondent (optional)', { exact: true }).fill('Driver A')
+  let rejected = false
+  await page.route(`**/api/cases/${caseId}/answers`, async route => {
+    if (route.request().method() === 'POST' && !rejected) {
+      rejected = true
+      await route.fulfill({ status: 409, json: { detail: 'The case changed. Review the current question and retry.' } })
+    } else await route.continue()
+  })
+  await form.getByRole('button', { name: 'Save answer', exact: true }).click()
+  await expect(page.getByText('The case changed. Review the current question and retry.', { exact: true })).toBeVisible()
+  await expect(form.getByLabel(`Response to ${question.title}`, { exact: true })).toHaveValue('I was driving the blue car. The camera clock was five minutes slow.')
   await form.getByRole('button', { name: 'Save answer', exact: true }).click()
   await expect(page.getByText('Case responses changed · reconstruction needs update.', { exact: true })).toBeVisible()
   const pending = await readCase()
@@ -68,4 +78,35 @@ test('question answers persist, stay pending until update, and retain exact hist
   await page.getByRole('link', { name: /View report/ }).click()
   await expect(page.getByRole('region', { name: 'Case responses', exact: true })).toContainText('Driver A')
   await expect(page.locator('.report-document .answer-reference').first()).toContainText('User reported · Driver A')
+})
+
+test('provisional multi-view relationships open each original without inventing a seek', async ({ page }) => {
+  const response = await page.request.get('/api/cases/demo')
+  const incident: Case = await response.json()
+  const first = incident.media_files.find(source => source.source_type === 'video')
+  if (!first) throw new Error('Fixture video is required')
+  const second = { ...first, source_id: 'other-camera', filename: 'other-camera.mp4', metadata: { ...first.metadata, label: 'Other camera' } }
+  incident.media_files.push(second)
+  incident.analyzed_media_files.push(second)
+  incident.analyzed_source_ids.push(second.source_id)
+  incident.intelligence = {
+    model: 'jev-1.14.0', version: 'browser-fixture', status: 'complete', sources: [], claims: [],
+    video_relationships: [{
+      source_a: first.source_id, source_b: second.source_id,
+      relationship: 'same_incident_different_view', confidence: 0.86,
+      same_incident_probability: 0.91, different_view_probability: 0.86,
+      basis: 'Similar vehicles and sequence, seen from different sides. Clock alignment is unknown.', matches: [],
+    }], input_tokens: 0, elapsed_seconds: 0, diagnostics: [],
+  }
+  await page.route('**/api/cases/demo', route => route.fulfill({ json: incident }))
+  await page.goto('/?case=demo')
+  const relationships = page.getByRole('region', { name: 'Video relationships', exact: true })
+  await expect(relationships).toContainText('Likely same incident · different viewpoint')
+  await expect(relationships).toContainText('Unverified model assessment')
+  await expect(relationships).toContainText('Clock alignment is unknown')
+  await relationships.getByRole('button', { name: `Open ${second.filename}`, exact: true }).click()
+  await expect(page.getByRole('region', { name: 'Source details', exact: true })).toContainText('Other camera')
+  await relationships.getByRole('button', { name: `Open ${first.filename}`, exact: true }).click()
+  await expect(page.getByRole('region', { name: 'Evidence viewer', exact: true }).locator('.player-caption')).toContainText(first.filename)
+  await expect.poll(() => page.locator('video').evaluate((video: HTMLVideoElement) => video.currentTime)).toBe(0)
 })

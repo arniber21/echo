@@ -1,7 +1,12 @@
 import { expect, test } from 'bun:test'
 import type { FrameAssessment, MediaFile } from '../app/types/generated'
 import { emptySourceMetadata } from '../app/utils/evidence'
-import { frameReference, probabilityLabel, signalLabel } from '../app/utils/intelligence'
+import {
+  frameReference,
+  probabilityLabel,
+  relationshipLabel,
+  signalLabel,
+} from '../app/utils/intelligence'
 
 const source: MediaFile = {
   source_id: 'video-2',
@@ -43,4 +48,13 @@ test('probability labels preserve uncertainty near zero and one', () => {
   expect(probabilityLabel(Number.NaN)).toBe('Unavailable')
   expect(signalLabel('vehicle_contact_visible')).toBe('Vehicle contact visible')
   expect(signalLabel('new_signal')).toBe('new signal')
+})
+
+test('video relationship labels keep provisional assessments explicit', () => {
+  expect(relationshipLabel('same_incident_different_view')).toBe(
+    'Likely same incident · different viewpoint',
+  )
+  expect(relationshipLabel('uncertain')).toBe('Relationship uncertain')
+  expect(relationshipLabel('same_footage')).toBe('Likely same footage')
+  expect(relationshipLabel('different_incident')).toBe('Likely different incidents')
 })

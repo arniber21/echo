@@ -61,6 +61,7 @@ const stageLabels: Record<string, string> = {
   analyzing_video: 'Analyzing video',
   analyzing_audio: 'Analyzing audio',
   analyzing_photos: 'Analyzing photos',
+  matching_views: 'Comparing video views',
   synthesizing: 'Updating analysis',
   checking_claims: 'Checking claims',
   completed: 'Analysis complete',
@@ -307,6 +308,7 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
           <EvidenceSignals
             v-if="view?.intelligence"
             :intelligence="view.intelligence"
+            :answers="view.citationAnswers"
             :analysis="displayedAnalysis"
             :media="media"
             :pending="!view.historical && !view.quickScan && needsUpdate"

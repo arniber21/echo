@@ -20,6 +20,7 @@ function intelligence(source: MediaFile, sourceTime: number, probability: number
       }],
     }],
     claims: [{ claim_index: 0, supported_probability: 0.91, overclaim_probability: 0.12 }],
+    video_relationships: [],
     input_tokens: 100,
     elapsed_seconds: 0.5,
     diagnostics: [],
@@ -45,6 +46,7 @@ test('saved evidence signals seek source time and historical versions keep their
     media_files: [source],
     analysis: incident.analysis,
     intelligence: intelligence(source, 7.25, 0.18),
+    answers: [],
   }]
   await page.route('**/api/cases/demo', route => route.fulfill({ json: incident }))
   await page.goto('/?case=demo')
@@ -96,7 +98,7 @@ for (const accepted of [false, true]) {
       analysis: {
         ...initialAnalysis,
         events: [quickEvent],
-        summary: [{ text: 'Preliminary sampled-frame check.', source_refs: [{ source_id: source.source_id, source_start: 3.25, source_end: null }] }],
+        summary: [{ answer_refs: [], text: 'Preliminary sampled-frame check.', source_refs: [{ source_id: source.source_id, source_start: 3.25, source_end: null }] }],
         missing_evidence: [],
         contradictions: [],
       },
@@ -114,6 +116,7 @@ for (const accepted of [false, true]) {
         media_files: [source],
         analysis: { ...initialAnalysis, events: [{ ...videoEvent, title: 'Saved earlier event' }] },
         intelligence: null,
+        answers: [],
       }]
     } else {
       fixture.analysis = null

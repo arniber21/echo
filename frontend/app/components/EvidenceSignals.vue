@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import type { Analysis, EvidenceIntelligence, MediaFile, SourceRef } from '../types/generated'
+import type {
+  Analysis,
+  CaseAnswer,
+  EvidenceIntelligence,
+  MediaFile,
+  SourceRef,
+} from '../types/generated'
 import { frameReference, probabilityLabel, signalLabel } from '../utils/intelligence'
 import { formatTime } from '../utils/timeline'
 
@@ -7,6 +13,7 @@ const props = defineProps<{
   intelligence: EvidenceIntelligence
   analysis: Analysis | null
   media: MediaFile[]
+  answers?: CaseAnswer[]
   pending: boolean
 }>()
 const emit = defineEmits<{ select: [reference: SourceRef] }>()
@@ -44,6 +51,11 @@ const statusLabel = computed(() => {
         verified findings.
       </p>
       <p v-if="pending" class="signals-note">These checks do not include the newest evidence.</p>
+      <VideoRelationships
+        :relationships="intelligence.video_relationships"
+        :media="media"
+        @select="emit('select', $event)"
+      />
       <details v-if="sources.length" class="signals-details">
         <summary>
           Source checks <span>{{ sources.length }}</span>
@@ -109,6 +121,7 @@ const statusLabel = computed(() => {
             :media="media"
             @select="emit('select', $event)"
           />
+          <AnswerReferences :references="claim.answer_refs" :answers="answers ?? []" />
         </article>
       </details>
     </template>

@@ -1,4 +1,4 @@
-import type { FrameAssessment, MediaFile, SourceRef } from '../types/generated'
+import type { FrameAssessment, MediaFile, SourceRef, VideoRelationship } from '../types/generated'
 
 const signalLabels: Record<string, string> = {
   road_visible: 'Road visible',
@@ -27,4 +27,15 @@ export function frameReference(source: MediaFile, frame: FrameAssessment): Sourc
     source_start: source.source_type === 'photo' ? null : frame.source_time,
     source_end: null,
   }
+}
+
+const relationshipLabels: Record<VideoRelationship['relationship'], string> = {
+  same_incident_different_view: 'Likely same incident · different viewpoint',
+  same_footage: 'Likely same footage',
+  different_incident: 'Likely different incidents',
+  uncertain: 'Relationship uncertain',
+}
+
+export function relationshipLabel(relationship: VideoRelationship['relationship']): string {
+  return relationshipLabels[relationship]
 }

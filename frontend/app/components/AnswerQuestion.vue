@@ -27,6 +27,12 @@ watch(
     if (value && value !== previous) editing.value = false
   },
 )
+watch(
+  () => `${props.questionId}:${props.questionRevision}`,
+  () => {
+    editing.value = false
+  },
+)
 function save() {
   if (!text.value.trim() || props.busy || props.readonly) return
   emit('save', {
