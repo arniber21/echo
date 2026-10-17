@@ -1,18 +1,25 @@
 <script setup lang="ts">
 import type { Analysis, MediaFile, SourceRef } from '../types/generated'
-defineProps<{ analysis: Analysis; media: MediaFile[] }>()
+const props = defineProps<{ analysis: Analysis; media: MediaFile[] }>()
 const emit = defineEmits<{ select: [reference: SourceRef] }>()
 const tab = ref('summary')
+const tabs = computed(() => [
+  { id: 'summary', label: 'Case summary' },
+  { id: 'gaps', label: 'Missing evidence' },
+  ...(props.analysis.contradictions.length ? [{ id: 'conflicts', label: 'Contradictions' }] : []),
+])
+watch(
+  () => props.analysis,
+  (value) => {
+    if (!value.contradictions.length && tab.value === 'conflicts') tab.value = 'summary'
+  },
+)
 </script>
 <template>
   <section class="insights-panel">
     <div class="insight-tabs" role="tablist" aria-label="Analysis details">
       <button
-        v-for="item in [
-          { id: 'summary', label: 'Case summary' },
-          { id: 'gaps', label: 'Missing evidence' },
-          { id: 'conflicts', label: 'Contradictions' },
-        ]"
+        v-for="item in tabs"
         :key="item.id"
         role="tab"
         :aria-selected="tab === item.id"
@@ -53,7 +60,7 @@ const tab = ref('summary')
         <p v-if="!analysis.missing_evidence.length" class="section-note">
           No specific missing evidence was identified. This does not establish completeness.
         </p></template
-      ><template v-else
+      ><template v-else-if="tab === 'conflicts' && analysis.contradictions.length"
         ><div class="eyebrow">ACCOUNTS THAT NEED A CLOSER LOOK</div>
         <article
           v-for="conflict in analysis.contradictions"
@@ -71,10 +78,7 @@ const tab = ref('summary')
             />
           </div>
         </article>
-        <p v-if="!analysis.contradictions.length" class="section-note">
-          No contradictions identified. Independent review is still required.
-        </p></template
-      >
+      </template>
     </div>
     <div class="analysis-disclaimer">
       <UIcon name="i-lucide-sparkles" />

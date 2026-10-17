@@ -11,7 +11,11 @@ function printReport() {
 <template>
   <div class="report-shell">
     <div class="report-controls">
-      <UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="ghost"
+      <UButton
+        :to="`/?case=${encodeURIComponent(caseId)}`"
+        icon="i-lucide-arrow-left"
+        color="neutral"
+        variant="ghost"
         >Back to workspace</UButton
       ><UButton icon="i-lucide-printer" @click="printReport">Print / save PDF</UButton>
     </div>
@@ -46,7 +50,9 @@ function printReport() {
           <small
             >Sources:
             {{
-              claim.source_refs.map((ref) => sourceLabel(ref, incident!.media_files)).join('; ')
+              claim.source_refs
+                .map((ref) => sourceLabel(ref, incident?.media_files ?? []))
+                .join('; ')
             }}</small
           >
         </div>
@@ -126,7 +132,9 @@ function printReport() {
       <section
         v-for="group in [
           { title: '04 / Missing evidence', items: incident.analysis?.missing_evidence ?? [] },
-          { title: '05 / Contradictions', items: incident.analysis?.contradictions ?? [] },
+          ...(incident.analysis?.contradictions.length
+            ? [{ title: '05 / Contradictions', items: incident.analysis.contradictions }]
+            : []),
         ]"
         :key="group.title"
       >
@@ -140,8 +148,9 @@ function printReport() {
           <small
             >Sources:
             {{
-              item.source_refs.map((ref) => sourceLabel(ref, incident!.media_files)).join('; ') ||
-              'No specific source'
+              item.source_refs
+                .map((ref) => sourceLabel(ref, incident?.media_files ?? []))
+                .join('; ') || 'No specific source'
             }}</small
           >
         </article>

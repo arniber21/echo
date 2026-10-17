@@ -2,6 +2,8 @@
 import type { Event, MediaFile, SourceRef } from '../types/generated'
 import { eventSourceReference, formatTime, placementLabel } from '../utils/timeline'
 const { currentCase, job, busy, error, load, upload, analyze } = useCaseWorkspace()
+const route = useRoute()
+const router = useRouter()
 const selectedSourceId = ref<string | null>(null)
 const selectedEvent = shallowRef<Event | null>(null)
 const reference = shallowRef<SourceRef | null>(null)
@@ -29,6 +31,9 @@ watch(currentCase, (value) => {
   selectedSourceId.value = value?.media_files[0]?.source_id ?? null
   selectedEvent.value = null
   reference.value = null
+  if (value && route.query.case !== value.case_id) {
+    void router.replace({ query: { case: value.case_id } })
+  }
 })
 function selectFile(file: MediaFile) {
   selectedSourceId.value = file.source_id
@@ -36,14 +41,21 @@ function selectFile(file: MediaFile) {
   selectedEvent.value = null
 }
 function selectReference(value: SourceRef) {
+  selectedEvent.value = null
   selectedSourceId.value = value.source_id
   reference.value = { ...value }
 }
 function selectEvent(event: Event) {
-  selectedEvent.value = event
   selectReference(eventSourceReference(event))
+  selectedEvent.value = event
 }
-onMounted(() => load())
+watch(
+  () => route.query.case,
+  (caseId) => {
+    if (typeof caseId === 'string' && caseId !== currentCase.value?.case_id) void load(caseId)
+  },
+)
+onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : 'demo'))
 </script>
 <template>
   <div class="app-shell">
@@ -60,7 +72,8 @@ onMounted(() => load())
     </header>
     <main class="workspace">
       <div class="breadcrumb">
-        <UIcon name="i-lucide-folder-open" /> Cases <UIcon name="i-lucide-chevron-right" />
+        <CaseSwitcher :current-id="currentCase?.case_id" :busy="busy" @select="load" />
+        <UIcon name="i-lucide-chevron-right" />
         <span>{{ currentCase?.title ?? 'Opening workspace' }}</span>
       </div>
       <div class="case-header">

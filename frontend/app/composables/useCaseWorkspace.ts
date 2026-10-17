@@ -8,7 +8,18 @@ export function useCaseWorkspace() {
   let controller: AbortController | null = null
 
   function message(cause: unknown): string {
-    return cause instanceof Error ? cause.message : 'The request could not be completed.'
+    if (cause instanceof Error) {
+      if (
+        'data' in cause &&
+        typeof cause.data === 'object' &&
+        cause.data !== null &&
+        'detail' in cause.data &&
+        typeof cause.data.detail === 'string'
+      )
+        return cause.data.detail
+      return cause.message
+    }
+    return 'The request could not be completed.'
   }
 
   async function run(operation: (signal: AbortSignal) => Promise<void>) {
