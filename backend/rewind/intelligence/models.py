@@ -52,6 +52,16 @@ class ViewEventMatch(IntelligenceModel):
     probability: Probability
 
 
+class DetailedViewReview(IntelligenceModel):
+    relationship: Literal[
+        "same_incident_different_view", "same_footage", "different_incident", "uncertain"
+    ]
+    confidence: Probability
+    basis: str = Field(min_length=1, max_length=2000)
+    matches: list[ViewEventMatch] = Field(default_factory=list, max_length=24)
+    model: str
+
+
 class VideoRelationship(IntelligenceModel):
     source_a: str
     source_b: str
@@ -66,6 +76,7 @@ class VideoRelationship(IntelligenceModel):
     different_view_probability: Probability
     basis: str
     matches: list[ViewEventMatch] = Field(default_factory=list)
+    detailed_review: DetailedViewReview | None = None
 
 
 class EvidenceIntelligence(IntelligenceModel):
