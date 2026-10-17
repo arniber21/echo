@@ -143,7 +143,7 @@ h2 {
 }
 .signals-details {
   margin-top: 16px;
-  border-top: 1px solid #e5e8df;
+  border-top: 1px solid var(--app-border);
   padding-top: 12px;
 }
 summary {
@@ -197,7 +197,7 @@ dd {
 }
 .frames li {
   padding: 10px 0;
-  border-top: 1px solid #e5e8df;
+  border-top: 1px solid var(--app-border);
 }
 .frame-probabilities {
   margin-bottom: 0;
