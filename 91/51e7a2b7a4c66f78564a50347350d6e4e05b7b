@@ -1,0 +1,23 @@
+frontend/app/components/IncidentTimeline.vue
+  s_4d6956e576b617::t_5f67323ac6303c 3,11,21-27
+frontend/app/utils/timeline.ts
+  s_4d6956e576b617::t_c39ec4929cda97 6,50-58
+frontend/tests/timeline.test.ts
+  s_4d6956e576b617::t_b569cbe712cfa2 2,8,65,68-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9151e7a2b7a4c66f78564a50347350d6e4e05b7b",
+  "prompts": {},
+  "sessions": {
+    "s_4d6956e576b617": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14b2e-d394-7f02-a4c6-a398c0ef3c51",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Arnab Ghosh <arnabcare21@gmail.com>"
+    }
+  }
+}
