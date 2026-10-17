@@ -56,3 +56,11 @@ prepare-footage:
 # Reproduce the fifteen reviewed clips from the local compilation without importing cases.
 prepare-clips:
     python3 scripts/prepare_local_test_set.py
+
+# Prepare fourteen reviewed scenes from the two additional local compilations.
+prepare-additional-clips:
+    python3 scripts/prepare_additional_clips.py
+
+# Import each additional clip as its own case, preserving existing cases; no paid analysis.
+ingest-additional-clips:
+    python3 scripts/ingest_prepared_clips.py data/additional-clips
