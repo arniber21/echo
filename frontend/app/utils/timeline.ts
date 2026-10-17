@@ -3,7 +3,7 @@ import type { Event, MediaFile, SourceRef } from '../types/generated'
 export function formatTime(seconds: number | null | undefined): string {
   if (seconds == null || !Number.isFinite(seconds)) return 'Time unknown'
   const sign = seconds < 0 ? '−' : ''
-  const value = Math.abs(seconds)
+  const value = Math.round(Math.abs(seconds) * 10) / 10
   return `${sign}${Math.floor(value / 60)
     .toString()
     .padStart(2, '0')}:${(value % 60).toFixed(1).padStart(4, '0')}`
@@ -46,4 +46,13 @@ export function eventSourceReference(event: Event): SourceRef {
     source_start: event.source_start,
     source_end: event.source_end,
   }
+}
+
+/** Match the backend primary video choice independent of upload order. */
+export function primaryVideo(media: MediaFile[]): MediaFile | undefined {
+  return media
+    .filter((file) => file.source_type === 'video')
+    .sort((a, b) =>
+      a.sha256 < b.sha256 ? -1 : a.sha256 > b.sha256 ? 1 : a.source_id.localeCompare(b.source_id),
+    )[0]
 }

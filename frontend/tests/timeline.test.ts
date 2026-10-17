@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import type { Event } from '../app/types/generated'
+import type { Event, MediaFile } from '../app/types/generated'
 import {
   caseExtent,
   eventSourceReference,
   formatTime,
   placementLabel,
+  primaryVideo,
   rangeStyle,
 } from '../app/utils/timeline'
 
@@ -61,5 +62,25 @@ describe('distinct source and case clocks', () => {
     expect(formatTime(null)).toBe('Time unknown')
     expect(formatTime(-1.5)).toBe('−00:01.5')
     expect(formatTime(83)).toBe('01:23.0')
+    expect(formatTime(59.96)).toBe('01:00.0')
   })
+})
+
+test('primary video is deterministic across upload order', () => {
+  const makeVideo = (source_id: string, sha256: string): MediaFile => ({
+    source_id,
+    sha256,
+    filename: `${source_id}.mp4`,
+    source_type: 'video',
+    mime_type: 'video/mp4',
+    url: `/api/media/${source_id}`,
+    size_bytes: 100,
+    duration_seconds: 20,
+    captured_at: null,
+  })
+  const first = makeVideo('video-a', 'aaaa')
+  const second = makeVideo('video-b', 'bbbb')
+  expect(primaryVideo([second, first])?.source_id).toBe('video-a')
+  expect(primaryVideo([first, second])?.source_id).toBe('video-a')
+  expect(primaryVideo([])).toBeUndefined()
 })

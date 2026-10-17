@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Event, MediaFile } from '../types/generated'
-import { caseExtent, formatTime, placementLabel, rangeStyle } from '../utils/timeline'
+import { caseExtent, formatTime, placementLabel, primaryVideo, rangeStyle } from '../utils/timeline'
 const props = defineProps<{
   events: Event[]
   media: MediaFile[]
@@ -8,6 +8,7 @@ const props = defineProps<{
   supportedIds: string[]
 }>()
 const emit = defineEmits<{ select: [event: Event] }>()
+const anchor = computed(() => primaryVideo(props.media))
 const extent = computed(() => caseExtent(props.events, props.media))
 const ordered = computed(() => [...props.events].sort((a, b) => a.case_best - b.case_best))
 const ticks = computed(() => Array.from({ length: 5 }, (_, index) => (extent.value * index) / 4))
@@ -17,7 +18,13 @@ const ticks = computed(() => Array.from({ length: 5 }, (_, index) => (extent.val
     <div class="section-heading">
       <div>
         <h2>Reconstructed timeline</h2>
-        <p class="section-note">A shared case clock, anchored to the video.</p>
+        <p class="section-note">
+          {{
+            anchor
+              ? `Case clock = ${anchor.filename} · 00:00 is video start.`
+              : 'Provisional case clock · no video anchor available.'
+          }}
+        </p>
       </div>
       <span class="subtle-pill"><UIcon name="i-lucide-clock-3" /> {{ events.length }} events</span>
     </div>
