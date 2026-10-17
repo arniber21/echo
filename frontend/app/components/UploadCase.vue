@@ -18,16 +18,30 @@ const dragging = ref(false)
 function setFiles(files: File[]) {
   drafts.value = files.map((file) => ({ file, metadata: emptySourceMetadata() }))
 }
+function addFiles(files: File[]) {
+  const fingerprint = (file: File) => `${file.name}:${file.size}:${file.lastModified}`
+  const existing = new Set(drafts.value.map((draft) => fingerprint(draft.file)))
+  for (const file of files) {
+    const key = fingerprint(file)
+    if (!existing.has(key)) {
+      drafts.value.push({ file, metadata: emptySourceMetadata() })
+      existing.add(key)
+    }
+  }
+}
 function openWithFiles(files: File[] = []) {
   setFiles(files)
   open.value = true
 }
 function pick(event: globalThis.Event) {
-  if (event.target instanceof HTMLInputElement) setFiles(Array.from(event.target.files ?? []))
+  if (event.target instanceof HTMLInputElement) {
+    addFiles(Array.from(event.target.files ?? []))
+    event.target.value = ''
+  }
 }
 function drop(event: DragEvent) {
   dragging.value = false
-  setFiles(Array.from(event.dataTransfer?.files ?? []))
+  addFiles(Array.from(event.dataTransfer?.files ?? []))
 }
 function removeFile(index: number) {
   drafts.value.splice(index, 1)
