@@ -262,6 +262,14 @@ onMounted(() => load(typeof route.query.case === 'string' ? route.query.case : u
               uncertain.
             </p>
           </div>
+          <EvidenceSignals
+            v-if="view?.intelligence"
+            :intelligence="view.intelligence"
+            :analysis="displayedAnalysis"
+            :media="media"
+            :pending="!view.historical && needsUpdate"
+            @select="selectReference"
+          />
         </div>
       </div>
       <div v-else-if="!busy" class="empty-analysis">

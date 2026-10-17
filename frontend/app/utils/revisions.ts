@@ -1,7 +1,14 @@
-import type { Analysis, AnalysisRevision, Case, MediaFile } from '../types/generated'
+import type {
+  Analysis,
+  AnalysisRevision,
+  Case,
+  EvidenceIntelligence,
+  MediaFile,
+} from '../types/generated'
 
 export interface ReconstructionView {
   analysis: Analysis | null
+  intelligence: EvidenceIntelligence | null
   revision: number | null
   sourceIds: string[]
   media: MediaFile[]
@@ -34,6 +41,7 @@ export function reconstructionView(
   return snapshot
     ? {
         analysis: snapshot.analysis,
+        intelligence: snapshot.intelligence ?? null,
         revision: snapshot.revision,
         sourceIds: snapshot.media_source_ids,
         media: snapshot.media_files.length
@@ -45,6 +53,7 @@ export function reconstructionView(
       }
     : {
         analysis: incident.analysis,
+        intelligence: incident.intelligence ?? null,
         revision: incident.analyzed_revision,
         sourceIds: incident.analyzed_source_ids,
         media: incident.media_files,

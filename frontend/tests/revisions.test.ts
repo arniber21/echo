@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import type { Analysis, Case, MediaFile } from '../app/types/generated'
+import type { Analysis, Case, EvidenceIntelligence, MediaFile } from '../app/types/generated'
 import { emptySourceMetadata, sourceDetailsChanged } from '../app/utils/evidence'
 import {
   formatCountChange,
@@ -52,6 +52,7 @@ function incident(): Case {
     analyzed_media_files: [video],
     analysis_history: [],
     memory: null,
+    intelligence: null,
   }
 }
 
@@ -75,6 +76,7 @@ describe('progressive reconstruction', () => {
         media_count: 1,
         media_files: [video],
         analysis,
+        intelligence: null,
       },
     ]
     const view = reconstructionView(value, 1)
@@ -93,6 +95,7 @@ describe('progressive reconstruction', () => {
         media_count: 1,
         media_files: [video],
         analysis,
+        intelligence: null,
       },
     ]
     expect(reconstructionDelta(value)).toEqual({
@@ -132,6 +135,7 @@ test('previous snapshots retain the original source annotations', () => {
       media_count: 1,
       media_files: [video],
       analysis,
+      intelligence: null,
     },
   ]
   expect(reconstructionView(value, 1).media[0]?.metadata.location).toBe('')
@@ -143,4 +147,35 @@ test('new intake files have independent metadata values', () => {
   const second = emptySourceMetadata()
   first.label = 'Front camera'
   expect(second.label).toBe('')
+})
+
+const signals: EvidenceIntelligence = {
+  model: 'jev-1.14.0',
+  version: 'test',
+  status: 'complete',
+  sources: [],
+  claims: [],
+  input_tokens: 10,
+  elapsed_seconds: 1,
+  diagnostics: [],
+}
+
+test('historical evidence signals never fall back to the current reconstruction', () => {
+  const value = incident()
+  value.intelligence = signals
+  value.analysis_history = [
+    {
+      revision: 1,
+      created_at: '2026-10-17T00:01:00Z',
+      media_source_ids: ['video'],
+      media_count: 1,
+      media_files: [video],
+      analysis,
+      intelligence: null,
+    },
+  ]
+  expect(reconstructionView(value, null).intelligence).toBe(signals)
+  expect(reconstructionView(value, 1).intelligence).toBeNull()
+  value.analysis_history[0]!.intelligence = { ...signals, version: 'older' }
+  expect(reconstructionView(value, 1).intelligence?.version).toBe('older')
 })
